@@ -1,0 +1,17 @@
+# Java / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+
+# React / Vite Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# IDE & OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
