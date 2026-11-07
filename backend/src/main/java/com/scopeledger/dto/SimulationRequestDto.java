@@ -1,4 +1,11 @@
 package com.scopeledger.dto;
 
-public class SimulationRequestDto {
-}
+import java.util.List;
+
+public record SimulationRequestDto(
+        Long targetTaskId,
+        String changeDescription,
+        Double addedHours,
+        Integer addedDays,
+        List<Long> droppedOptionalTaskIds
+) {}
