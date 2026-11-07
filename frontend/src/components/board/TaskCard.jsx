@@ -36,9 +36,21 @@ export default function TaskCard({
 
   const totalCost = Number(task.estimatedHours) * Number(task.hourlyRate);
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelectTask(task);
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectTask(task)}
+      onKeyDown={handleKeyDown}
+      aria-pressed={isSelected}
+      aria-label={`Task ${task.id}: ${task.title}. Status: ${task.status}. ${isSelected ? 'Selected.' : ''}`}
       style={{
         left: `${task.posX || 0}px`,
         top: `${task.posY || 0}px`,
