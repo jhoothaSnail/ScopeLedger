@@ -1,0 +1,113 @@
+/* ScopeLedger Interactive Board & Canvas Styles */
+
+.board-viewport {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 145px);
+  overflow: hidden;
+  background-color: #07090e;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 32px 32px;
+  user-select: none;
+}
+
+.board-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3200px;
+  height: 2400px;
+  transform-origin: 0 0;
+  cursor: grab;
+}
+
+.board-container.is-panning {
+  cursor: grabbing;
+}
+
+/* SVG Connectors */
+.board-svg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.connector-path {
+  fill: none;
+  stroke: #334155;
+  stroke-width: 2;
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+.connector-path.highlighted {
+  stroke: var(--accent-cyan);
+  stroke-width: 2.5;
+}
+
+.connector-path.impacted-direct {
+  stroke: var(--accent-coral);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 3;
+  animation: connector-flow 1.5s linear infinite;
+}
+
+.connector-path.impacted-rework {
+  stroke: var(--accent-amber);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 3;
+  animation: connector-flow 1.5s linear infinite;
+}
+
+@keyframes connector-flow {
+  from { stroke-dashoffset: 18; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Task Card Ripple Glows & Pulse Animations */
+@keyframes coral-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(244, 63, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+}
+
+@keyframes amber-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.card-state-direct-change {
+  border-color: #f43f5e !important;
+  background-color: rgba(30, 10, 18, 0.95) !important;
+  animation: coral-pulse 2s infinite ease-in-out;
+}
+
+.card-state-downstream-rework {
+  border-color: #f59e0b !important;
+  background-color: rgba(32, 20, 10, 0.95) !important;
+  animation: amber-pulse 2.2s infinite ease-in-out;
+}
+
+.card-state-dropped {
+  opacity: 0.35 !important;
+  filter: grayscale(0.9);
+  border-style: dashed !important;
+  border-color: #475569 !important;
+  text-decoration: line-through;
+}
+
+/* Modal Backdrop */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
