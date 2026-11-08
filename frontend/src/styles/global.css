@@ -1,0 +1,199 @@
+/* ScopeLedger — Premium Design System & Global Tokens
+   Dark-first, financial intelligence aesthetic.
+   Palantir × Linear × Bloomberg energy.
+*/
+
+/* ============================
+   Typography Import
+   ============================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================
+   Design Tokens
+   ============================ */
+:root {
+  /* Surface Hierarchy */
+  --bg-app:              #07090e;
+  --bg-sidebar:          #040509;
+  --bg-surface:          #0e111a;
+  --bg-surface-elevated: #151926;
+  --bg-surface-active:   #1d2233;
+  --bg-surface-hover:    #161c2a;
+
+  /* Borders */
+  --border-faint:     rgba(255, 255, 255, 0.04);
+  --border-subtle:    rgba(255, 255, 255, 0.07);
+  --border-default:   rgba(255, 255, 255, 0.11);
+  --border-highlight: rgba(255, 255, 255, 0.22);
+  --border-active:    rgba(6, 182, 212, 0.55);
+
+  /* Semantic Accents */
+  --accent-cyan:    #06b6d4;
+  --accent-teal:    #14b8a6;
+  --accent-emerald: #10b981;
+  --accent-amber:   #f59e0b;
+  --accent-coral:   #f43f5e;
+  --accent-indigo:  #6366f1;
+  --accent-violet:  #8b5cf6;
+
+  /* Typography */
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --text-faint:     #475569;
+
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-xl:  0 16px 48px rgba(0, 0, 0, 0.8);
+
+  /* Sidebar */
+  --sidebar-width:          240px;
+  --sidebar-collapsed-width: 64px;
+
+  /* Transitions */
+  --ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* ============================
+   Reduced Motion Override
+   ============================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================
+   Base Reset
+   ============================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ============================
+   Typography
+   ============================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin: 0;
+}
+
+p { margin: 0; }
+
+/* Tabular numbers for financial data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Mono text for IDs, figures, technical values */
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ============================
+   Scrollbar
+   ============================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+/* ============================
+   Focus Styles (Accessibility)
+   ============================ */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================
+   Utility Classes
+   ============================ */
+.glass-panel {
+  background: rgba(14, 17, 26, 0.80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================
+   Skeleton Loader
+   ============================ */
+@keyframes skeleton-shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.07) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
