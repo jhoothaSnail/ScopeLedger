@@ -1,4 +1,4 @@
 package com.scopeledger.dto;
 
-public class DependencyDto {
-}
+/** Flat directed edge for Contract A: {@code prerequisiteTaskId -> dependentTaskId}. */
+public record DependencyDto(Long id, Long prerequisiteTaskId, Long dependentTaskId) {}

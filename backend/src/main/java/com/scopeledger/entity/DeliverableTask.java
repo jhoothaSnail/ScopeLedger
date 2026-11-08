@@ -16,7 +16,10 @@ public class DeliverableTask {
     private Integer durationDays;
     private Boolean isOptional;
     private Boolean isActive;
+    // Explicit names: the snake-case strategy maps a trailing capital ("posX") to "posx", not "pos_x".
+    @Column(name = "pos_x")
     private Integer posX;
+    @Column(name = "pos_y")
     private Integer posY;
 
     public DeliverableTask() {}
