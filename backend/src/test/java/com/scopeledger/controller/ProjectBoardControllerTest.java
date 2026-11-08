@@ -47,7 +47,7 @@ class ProjectBoardControllerTest {
                 .andExpect(jsonPath("$.tasks[0].hourlyRate").value(1000.00))
                 .andExpect(jsonPath("$.tasks[3].isOptional").value(true))
                 .andExpect(jsonPath("$.tasks[3].isActive").value(true))
-                .andExpect(jsonPath("$.tasks[0].posX").value(80))
+                .andExpect(jsonPath("$.tasks[0].posX").value(100))
                 .andExpect(jsonPath("$.dependencies[0].prerequisiteTaskId").value(101))
                 .andExpect(jsonPath("$.dependencies[0].dependentTaskId").value(102));
     }
