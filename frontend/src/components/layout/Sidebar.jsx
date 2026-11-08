@@ -25,6 +25,7 @@ const ICONS = {
 };
 
 const NAV_ITEMS = [
+  { key: 'overview', label: 'Overview', hint: 'Project health at a glance' },
   { key: 'board', label: 'Project board', hint: 'Tasks and how they connect' },
   { key: 'changeorders', label: 'Change history', hint: 'Every approved change' },
 ];
@@ -93,7 +94,7 @@ function ProfileMenu({ user, isCollapsed, onSignOut, onStartTour }) {
   );
 }
 
-export default function Sidebar({ activePage = 'board', onNavigate, projectName, isCollapsed, onToggleCollapse, user, onSignOut, onStartTour, navItems = NAV_ITEMS }) {
+export default function Sidebar({ activePage = 'overview', onNavigate, projectName, isCollapsed, onToggleCollapse, user, onSignOut, onStartTour, navItems = NAV_ITEMS }) {
   return (
     <aside
       aria-label="Main navigation"

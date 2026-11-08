@@ -13,7 +13,8 @@ import {
   createDeliverableTask,
   createTaskDependency,
   resetDemoData,
-  fetchChangeOrders
+  fetchChangeOrders,
+  isUsingFallback
 } from '../services/boardApi';
 import { simulateChangeOrder, commitChangeOrder } from '../services/changeOrderApi';
 
@@ -167,6 +168,10 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   const [board, setBoard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [showBoardTip, setShowBoardTip] = useState(() => {
+    try { return localStorage.getItem('scopeledger.tip.board') !== 'dismissed'; } catch { return true; }
+  });
   const [toastMsg, setToastMsg] = useState(null);
 
   // Panels & modals
@@ -195,6 +200,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
     try {
       const data = await fetchProjectBoard(1);
       setBoard(data);
+      setIsOffline(isUsingFallback());
       if (data?.name) onProjectNameChange?.(data.name);
     } catch (err) {
       setErrorMsg('Failed to connect to backend: ' + err.message);
@@ -366,7 +372,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
         onResetDemo={handleResetDemo}
         onOpenAuditLog={handleOpenAudit}
         onOpenAddModal={() => setIsAddModalOpen(true)}
-        isLiveApi={!errorMsg}
+        isLiveApi={!errorMsg && !isOffline}
       />
 
       {/* Metrics Banner */}
@@ -378,17 +384,17 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       />
 
       {/* Error banner */}
-      {errorMsg && (
+      {(errorMsg || isOffline) && (
         <div style={{
           padding: '8px 24px',
           background: 'color-mix(in srgb, var(--accent-coral) 8%, transparent)',
           borderBottom: '1px solid color-mix(in srgb, var(--accent-coral) 20%, transparent)',
           display: 'flex', alignItems: 'center', gap: 8,
-          fontFamily: 'var(--font-mono)', fontSize: 11,
+          fontSize: 13,
           color: 'var(--accent-coral)',
         }}>
           <span>⚠</span>
-          <span>{errorMsg} — running in offline mock mode</span>
+          <span>Can’t reach the server, so you’re seeing sample data. Changes you make here won’t be saved.</span>
         </div>
       )}
 
@@ -404,6 +410,35 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       >
         {/* Board Canvas */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          {showBoardTip && !isLoading && !selectedTask && (
+            <div
+              role="note"
+              style={{
+                position: 'absolute', top: 16, left: 16, zIndex: 25, maxWidth: 420,
+                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
+                background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)', fontSize: 13, color: 'var(--text-secondary)',
+              }}
+            >
+              <span aria-hidden="true" style={{ color: 'var(--accent-cyan)', fontSize: 16, lineHeight: 1.2 }}>💡</span>
+              <span>
+                <strong style={{ color: 'var(--text-primary)' }}>Tip:</strong> click any task to see its details, then
+                choose <em>Explore a change</em> to see what it would cost. Arrows show which tasks depend on others.
+              </span>
+              <button
+                type="button"
+                className="sl-btn sl-btn-ghost sl-icon-btn"
+                aria-label="Dismiss tip"
+                onClick={() => {
+                  setShowBoardTip(false);
+                  try { localStorage.setItem('scopeledger.tip.board', 'dismissed'); } catch { /* ignore */ }
+                }}
+                style={{ minHeight: 24, minWidth: 24, padding: 2 }}
+              >
+                ×
+              </button>
+            </div>
+          )}
           {isLoading ? (
             <BoardSkeleton />
           ) : (

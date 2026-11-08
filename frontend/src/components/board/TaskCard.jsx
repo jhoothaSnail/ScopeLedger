@@ -1,5 +1,7 @@
 // frontend/src/components/board/TaskCard.jsx
 import React from 'react';
+import { IMPACT, OPTIONAL, STATUS, statusLabel } from '../../content/glossary';
+import { formatDays, formatHours, formatINR } from '../../content/format';
 
 export default function TaskCard({
   task,
@@ -21,20 +23,15 @@ export default function TaskCard({
     rippleClass = "card-state-downstream-rework";
   }
 
-  // Status badge colors
+  // Status badge colours (palette re-themed by index.css in light mode)
   const statusColors = {
-    COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    IN_PROGRESS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    IN_PROGRESS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
     NOT_STARTED: "bg-slate-800 text-slate-400 border-slate-700"
   };
 
-  const statusText = {
-    COMPLETED: "Completed",
-    IN_PROGRESS: "In Progress",
-    NOT_STARTED: "Not Started"
-  };
-
   const totalCost = Number(task.estimatedHours) * Number(task.hourlyRate);
+  const impactLabel = isDirectChange ? IMPACT.DIRECT_CHANGE : IMPACT.DOWNSTREAM_REWORK;
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -47,92 +44,73 @@ export default function TaskCard({
     <div
       role="button"
       tabIndex={0}
+      data-tour={`task-${task.id}`}
       onClick={() => onSelectTask(task)}
       onKeyDown={handleKeyDown}
       aria-pressed={isSelected}
-      aria-label={`Task ${task.id}: ${task.title}. Status: ${task.status}. ${isSelected ? 'Selected.' : ''}`}
+      aria-label={`${task.title}. ${statusLabel(task.status)}${task.isOptional ? ', optional' : ''}.${impactData && !isDropped ? ` ${impactLabel.label}.` : ''}${isDropped ? ' Removed from scope.' : ''} Press Enter for details.`}
       style={{
         left: `${task.posX || 0}px`,
         top: `${task.posY || 0}px`,
         width: '260px'
       }}
-      className={`absolute select-none cursor-pointer rounded-xl p-3.5 bg-slate-900/90 border transition-all duration-200 shadow-lg hover:shadow-cyan-950/20 hover:scale-[1.01] ${
+      className={`absolute select-none cursor-pointer rounded-xl p-3.5 bg-slate-900 border transition-all duration-200 shadow-lg hover:shadow-cyan-950/20 hover:scale-[1.01] ${
         isSelected
           ? 'border-cyan-400 ring-2 ring-cyan-400/30'
           : 'border-slate-800 hover:border-slate-700'
       } ${rippleClass}`}
     >
-      {/* Top Header: ID & Status */}
+      {/* Status row */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[11px] font-mono text-slate-400 font-semibold tracking-wider">
-          #{task.id}
+        <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${statusColors[task.status] || statusColors.NOT_STARTED}`}
+          title={STATUS[task.status]?.help}>
+          {statusLabel(task.status)}
         </span>
-
-        <div className="flex items-center gap-1.5">
-          {task.isOptional && (
-            <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-semibold">
-              Optional
-            </span>
-          )}
-          <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border font-semibold ${statusColors[task.status] || statusColors.NOT_STARTED}`}>
-            {statusText[task.status] || task.status}
+        {task.isOptional && (
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30 font-semibold" title={OPTIONAL.help}>
+            {OPTIONAL.label}
           </span>
-        </div>
+        )}
       </div>
 
-      {/* Task Title */}
-      <h4 className={`text-xs font-semibold text-slate-100 line-clamp-2 mb-2.5 ${isDropped ? 'line-through text-slate-400' : ''}`}>
+      {/* Title */}
+      <h4 className={`text-sm font-semibold text-slate-100 line-clamp-2 mb-2.5 ${isDropped ? 'line-through text-slate-400' : ''}`}>
         {task.title}
       </h4>
 
-      {/* Metadata metrics */}
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
+      {/* Effort & cost */}
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
         <div>
-          <span className="text-[10px] text-slate-400 block">Effort / Rate</span>
-          <span className="text-slate-300 font-medium">
-            {task.estimatedHours}h <span className="text-slate-400 text-[9px]">@ ₹{task.hourlyRate}</span>
+          <span className="text-[11px] text-slate-400 block">Work</span>
+          <span className="text-slate-200 font-medium" title={`${task.estimatedHours} hours at ${formatINR(task.hourlyRate)} per hour`}>
+            {formatHours(task.estimatedHours)} <span className="text-slate-400">× {formatINR(task.hourlyRate)}/h</span>
           </span>
         </div>
-
         <div>
-          <span className="text-[10px] text-slate-400 block">Duration / Cost</span>
-          <span className="text-slate-300 font-medium">
-            {task.durationDays}d <span className="text-slate-400 text-[9px]">(₹{(totalCost / 1000).toFixed(0)}k)</span>
+          <span className="text-[11px] text-slate-400 block">Time · Cost</span>
+          <span className="text-slate-200 font-medium">
+            {formatDays(task.durationDays)} · {formatINR(totalCost)}
           </span>
         </div>
       </div>
 
-      {/* Domino Ripple Impact Notification Badge */}
+      {/* Impact of the change being explored */}
       {impactData && !isDropped && (
-        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
-          {isDirectChange ? (
-            <>
-              <span className="text-rose-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                Direct Scope
-              </span>
-              <span className="text-rose-400 font-semibold">
-                +{impactData.extraHours}h (+₹{Number(impactData.extraCost).toLocaleString('en-IN')})
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                Rework Domino
-              </span>
-              <span className="text-amber-400 font-semibold">
-                +{impactData.extraHours}h (+₹{Number(impactData.extraCost).toLocaleString('en-IN')})
-              </span>
-            </>
-          )}
+        <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between gap-2 text-xs" title={impactLabel.help}>
+          <span className={`${isDirectChange ? 'text-rose-400' : 'text-amber-400'} font-semibold flex items-center gap-1.5`}>
+            <span className={`w-2 h-2 rounded-full ${isDirectChange ? 'bg-rose-400' : 'bg-amber-400'} motion-safe:animate-ping`} />
+            {impactLabel.label}
+          </span>
+          <span className={`${isDirectChange ? 'text-rose-400' : 'text-amber-400'} font-semibold`}>
+            +{formatHours(impactData.extraHours)} · +{formatINR(impactData.extraCost)}
+          </span>
         </div>
       )}
 
-      {/* Dropped Indicator Banner */}
+      {/* Removed from scope */}
       {isDropped && (
-        <div className="mt-2 text-center text-[10px] font-mono text-emerald-400 bg-emerald-950/40 py-0.5 rounded border border-emerald-500/20">
-          ✓ Proposed to Drop
+        <div className="mt-2 text-center text-xs font-medium text-emerald-400 bg-emerald-950/40 py-1 rounded border border-emerald-500/30" title={IMPACT.DROPPED.help}>
+          ✓ {IMPACT.DROPPED.label} · saves {formatINR(totalCost)}
         </div>
       )}
     </div>

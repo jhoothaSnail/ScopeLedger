@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import WorkspacePage from './pages/WorkspacePage';
 import LoginPage from './pages/LoginPage';
+import OverviewPage from './pages/OverviewPage';
 import ThemeProvider from './theme/ThemeProvider';
 import AuthProvider from './auth/AuthProvider';
 import { useAuth } from './auth/authContext';
@@ -14,7 +15,7 @@ import './styles/ui.css';
 function AppShell() {
   const { user, signOut } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activePage, setActivePage] = useState('board');
+  const [activePage, setActivePage] = useState('overview');
   const [projectName, setProjectName] = useState('');
 
   if (!user) {
@@ -22,7 +23,7 @@ function AppShell() {
   }
 
   const handleSignOut = () => {
-    setActivePage('board');
+    setActivePage('overview');
     signOut();
   };
 
@@ -38,7 +39,11 @@ function AppShell() {
         onSignOut={handleSignOut}
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <WorkspacePage activePage={activePage} onNavigate={setActivePage} onProjectNameChange={setProjectName} />
+        {activePage === 'overview' ? (
+          <OverviewPage user={user} onNavigate={setActivePage} onProjectNameChange={setProjectName} />
+        ) : (
+          <WorkspacePage activePage={activePage} onNavigate={setActivePage} onProjectNameChange={setProjectName} />
+        )}
       </div>
     </div>
   );

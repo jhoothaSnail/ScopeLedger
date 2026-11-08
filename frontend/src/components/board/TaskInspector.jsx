@@ -20,7 +20,7 @@ function ImpactTypeBadge({ type }) {
           display: 'inline-block',
           animation: 'ping 1.2s cubic-bezier(0,0,0.2,1) infinite'
         }} />
-        Direct Change
+        Requested change
       </span>
     );
   }
@@ -41,7 +41,7 @@ function ImpactTypeBadge({ type }) {
           display: 'inline-block',
           animation: 'ping 1.2s cubic-bezier(0,0,0.2,1) infinite'
         }} />
-        Rework Domino
+        Needs rework
       </span>
     );
   }
@@ -50,9 +50,9 @@ function ImpactTypeBadge({ type }) {
 
 function StatusPill({ status }) {
   const map = {
-    COMPLETED: { label: 'Completed', bg: 'color-mix(in srgb, var(--accent-emerald) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-emerald) 25%, transparent)', color: 'var(--accent-emerald)' },
-    IN_PROGRESS: { label: 'In Progress', bg: 'color-mix(in srgb, var(--accent-cyan) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-cyan) 25%, transparent)', color: 'var(--accent-cyan)' },
-    NOT_STARTED: { label: 'Not Started', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', color: 'var(--text-muted)' },
+    COMPLETED: { label: 'Done', bg: 'color-mix(in srgb, var(--accent-emerald) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-emerald) 25%, transparent)', color: 'var(--accent-emerald)' },
+    IN_PROGRESS: { label: 'In progress', bg: 'color-mix(in srgb, var(--accent-cyan) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-cyan) 25%, transparent)', color: 'var(--accent-cyan)' },
+    NOT_STARTED: { label: 'Not started', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', color: 'var(--text-muted)' },
   };
   const s = map[status] || map.NOT_STARTED;
   return (
@@ -194,7 +194,7 @@ export default function TaskInspector({
               textTransform: 'uppercase', letterSpacing: '0.08em',
               color: 'var(--accent-cyan)', marginBottom: 2
             }}>
-              Task Inspector
+              Task details
             </div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: 11,
@@ -262,7 +262,7 @@ export default function TaskInspector({
                   border: '1px solid color-mix(in srgb, var(--accent-emerald) 25%, transparent)',
                   color: 'var(--accent-emerald)'
                 }}>
-                  Proposed Drop
+                  Removed in this plan
                 </span>
               )}
             </div>
@@ -295,7 +295,7 @@ export default function TaskInspector({
               <div style={{ display: 'flex', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
-                    Extra Hours
+                    Extra work
                   </div>
                   <div style={{
                     fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -306,7 +306,7 @@ export default function TaskInspector({
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
-                    Extra Cost
+                    Extra cost
                   </div>
                   <div style={{
                     fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -318,7 +318,7 @@ export default function TaskInspector({
                 {impactData.delayDays > 0 && (
                   <div>
                     <div style={{ fontSize: 10, color: 'var(--text-faint)', fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
-                      Delay
+                      Extra days
                     </div>
                     <div style={{
                       fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -334,17 +334,17 @@ export default function TaskInspector({
 
           {/* Task Metrics */}
           <div>
-            <SectionLabel>Task Metrics</SectionLabel>
+            <SectionLabel>Effort and cost</SectionLabel>
             <div style={{
               background: 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 8, padding: '10px 12px'
             }}>
-              <MetricRow label="Estimated Hours" value={`${task.estimatedHours}h`} />
-              <MetricRow label="Hourly Rate" value={`₹${Number(task.hourlyRate).toLocaleString('en-IN')}`} />
-              <MetricRow label="Duration" value={`${task.durationDays} days`} />
+              <MetricRow label="Work" value={`${task.estimatedHours}h`} />
+              <MetricRow label="Rate per hour" value={`₹${Number(task.hourlyRate).toLocaleString('en-IN')}`} />
+              <MetricRow label="Time needed" value={`${task.durationDays} days`} />
               <MetricRow
-                label="Total Cost"
+                label="Total cost"
                 value={`₹${Number(totalCost).toLocaleString('en-IN')}`}
                 valueStyle={{ color: 'var(--accent-cyan)' }}
               />
@@ -353,10 +353,10 @@ export default function TaskInspector({
 
           {/* Prerequisite Tasks */}
           <div>
-            <SectionLabel>Prerequisites ({prereqTasks.length})</SectionLabel>
+            <SectionLabel>Needs these first ({prereqTasks.length})</SectionLabel>
             {prereqTasks.length === 0 ? (
               <p style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                No upstream dependencies — this task can start independently.
+                Doesn’t depend on any other task — it can start on its own.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -367,10 +367,10 @@ export default function TaskInspector({
 
           {/* Downstream Dependents */}
           <div>
-            <SectionLabel>Downstream Dependents ({downstreamTasks.length})</SectionLabel>
+            <SectionLabel>Tasks that rely on this ({downstreamTasks.length})</SectionLabel>
             {downstreamTasks.length === 0 ? (
               <p style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-sans)', margin: 0 }}>
-                No downstream tasks depend on this task.
+                No other task relies on this one.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -408,8 +408,9 @@ export default function TaskInspector({
           background: 'var(--bg-surface)',
         }}>
           <button
+            data-tour="explore-change"
             onClick={onOpenSimulation}
-            aria-label={`Propose scope change for ${task.title}`}
+            aria-label={`Explore a change to ${task.title}`}
             disabled={isDropped}
             style={{
               width: '100%',
@@ -444,7 +445,7 @@ export default function TaskInspector({
               style={{ width: 14, height: 14, flexShrink: 0 }} aria-hidden="true">
               <path d="M8 1v14M1 8l7 7 7-7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Propose Scope Change
+            Explore a change to this task
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.75}
               style={{ width: 12, height: 12, flexShrink: 0 }} aria-hidden="true">
               <path d="M4 8h8M9 5l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />

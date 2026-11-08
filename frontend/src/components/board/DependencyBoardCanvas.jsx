@@ -1,5 +1,6 @@
 // frontend/src/components/board/DependencyBoardCanvas.jsx
 import React, { useState, useRef } from 'react';
+import { IMPACT, STATUS } from '../../content/glossary';
 import TaskCard from './TaskCard';
 
 const CARD_WIDTH = 260;
@@ -99,26 +100,24 @@ export default function DependencyBoardCanvas({
         <button
           onClick={handleResetView}
           className="px-2 h-7 rounded hover:bg-slate-800 text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors"
-          title="Reset Canvas View"
+          title="Fit the board back to the screen"
         >
-          Reset View
+          Fit to screen
         </button>
       </div>
 
       {/* Legend */}
-      <div className="absolute top-4 right-4 z-20 hidden md:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800/80 backdrop-blur-md text-[10px] font-mono text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" /> Completed
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-400" /> In Progress
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-rose-400" /> Direct Change
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-400" /> Downstream Rework
-        </span>
+      <div data-tour="legend" className="absolute top-4 right-4 z-20 hidden md:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-sm">
+        {[
+          ['bg-emerald-400', STATUS.COMPLETED],
+          ['bg-cyan-400', STATUS.IN_PROGRESS],
+          ['bg-rose-400', IMPACT.DIRECT_CHANGE],
+          ['bg-amber-400', IMPACT.DOWNSTREAM_REWORK],
+        ].map(([dot, item]) => (
+          <span key={item.label} className="flex items-center gap-1.5" title={item.help}>
+            <span className={`w-2.5 h-2.5 rounded-full ${dot}`} /> {item.label}
+          </span>
+        ))}
       </div>
 
       {/* Pannable & Zoomable Canvas Workspace */}

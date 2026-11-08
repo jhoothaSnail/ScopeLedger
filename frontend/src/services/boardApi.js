@@ -6,15 +6,26 @@ import { MOCK_PROJECT_BOARD, MOCK_CHANGE_ORDERS } from '../mocks/mockProjectData
 let localBoard = JSON.parse(JSON.stringify(MOCK_PROJECT_BOARD));
 let localChangeOrders = [...MOCK_CHANGE_ORDERS];
 
+// True when the last board load used local sample data (mock mode or server unreachable).
+let usingFallback = USE_MOCK_API;
+
+/** Lets the UI say honestly whether it is showing live or sample data. */
+export function isUsingFallback() {
+  return usingFallback;
+}
+
 export async function fetchProjectBoard(projectId = 1) {
   if (USE_MOCK_API) {
     return Promise.resolve(JSON.parse(JSON.stringify(localBoard)));
   }
 
   try {
-    return await apiFetch(`/projects/${projectId}/board`);
+    const board = await apiFetch(`/projects/${projectId}/board`);
+    usingFallback = false;
+    return board;
   } catch (err) {
     console.warn("Backend board endpoint unreachable. Falling back to in-memory board state.", err.message);
+    usingFallback = true;
     return JSON.parse(JSON.stringify(localBoard));
   }
 }

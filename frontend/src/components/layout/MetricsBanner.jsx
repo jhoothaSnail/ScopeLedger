@@ -1,251 +1,138 @@
 // frontend/src/components/layout/MetricsBanner.jsx
+// Plain-language project numbers. While a change is being explored, the "after" figures
+// show its effect so people can compare with what is agreed today.
 import React from 'react';
+import InfoTip from '../common/InfoTip';
+import { METRICS } from '../../content/glossary';
+import { formatDays, formatDaysDelta, formatINR, formatINRDelta } from '../../content/format';
 
-function KpiBlock({ label, value, delta, deltaPositiveIsGood = false }) {
-  const isNeutral = delta === 0 || delta == null;
-  const isBad = delta > 0 && !deltaPositiveIsGood;
-  const isGood = delta < 0 || (delta > 0 && deltaPositiveIsGood);
+const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' };
+const valueStyle = { fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' };
 
-  const badgeStyle = isNeutral ? null : {
-    display: 'inline-flex', alignItems: 'center',
-    padding: '1px 7px', borderRadius: 4,
-    fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-    background: isBad
-      ? 'color-mix(in srgb, var(--accent-coral) 12%, transparent)'
-      : 'color-mix(in srgb, var(--accent-emerald) 12%, transparent)',
-    border: isBad
-      ? '1px solid color-mix(in srgb, var(--accent-coral) 30%, transparent)'
-      : '1px solid color-mix(in srgb, var(--accent-emerald) 30%, transparent)',
-    color: isBad ? 'var(--accent-coral)' : 'var(--accent-emerald)',
-  };
-
+/** Delta badge: coral when it costs more, emerald when it saves, hidden when zero. */
+function DeltaBadge({ amount, text }) {
+  if (!amount) return null;
+  const worse = amount > 0;
+  const color = worse ? 'var(--accent-coral)' : 'var(--accent-emerald)';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.07em',
-          color: 'var(--text-faint)'
-        }}>
-          {label}
-        </span>
-        {!isNeutral && badgeStyle && (
-          <span style={badgeStyle}>
-            {delta > 0 ? '+' : ''}{delta}
-          </span>
-        )}
-      </div>
-      <span style={{
-        fontSize: 15, fontFamily: 'var(--font-mono)', fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: isNeutral
-          ? 'var(--text-primary)'
-          : isBad ? 'var(--accent-coral)' : isGood ? 'var(--accent-emerald)' : 'var(--text-primary)',
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
+    <span
+      style={{
+        padding: '2px 8px',
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 700,
+        color,
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+function Kpi({ metric, value, children, align }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, ...labelStyle }}>
+        {metric.label}
+        <InfoTip text={metric.help} label={`What is “${metric.label}”?`} align={align} />
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={valueStyle}>{value}</span>
+        {children}
       </span>
     </div>
   );
 }
 
-function Divider() {
-  return (
-    <div style={{
-      width: 1, height: 32,
-      background: 'color-mix(in srgb, var(--ink) 8%, transparent)',
-      flexShrink: 0
-    }} />
-  );
-}
+const Divider = () => (
+  <div aria-hidden="true" style={{ width: 1, height: 36, background: 'var(--border-subtle)', flexShrink: 0 }} />
+);
 
-function TaskProgressBar({ tasks = [] }) {
+function Progress({ tasks }) {
   const total = tasks.length;
-  if (total === 0) return null;
-
-  const completed  = tasks.filter(t => t.status === 'COMPLETED').length;
-  const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS').length;
-  const notStarted = total - completed - inProgress;
-
-  const pctComplete   = Math.round((completed  / total) * 100);
-  const pctInProgress = Math.round((inProgress / total) * 100);
+  if (!total) return null;
+  const done = tasks.filter((t) => t.status === 'COMPLETED').length;
+  const active = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+  const pct = (n) => (n / total) * 100;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.07em',
-          color: 'var(--text-faint)'
-        }}>
-          Task Progress
-        </span>
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          color: 'var(--accent-emerald)'
-        }}>
-          {pctComplete}%
-        </span>
-      </div>
-
-      {/* Segmented bar */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, ...labelStyle }}>
+        {METRICS.progress.label}
+        <InfoTip text={METRICS.progress.help} label="What does progress show?" align="end" />
+        <span style={{ marginLeft: 'auto', color: 'var(--text-primary)' }}>{done} of {total} done</span>
+      </span>
       <div
-        style={{
-          height: 5, borderRadius: 3,
-          background: 'color-mix(in srgb, var(--ink) 7%, transparent)',
-          overflow: 'hidden',
-          display: 'flex',
-        }}
         role="progressbar"
-        aria-valuenow={pctComplete}
+        aria-valuenow={Math.round(pct(done))}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${pctComplete}% of tasks completed`}
+        aria-label={`${done} of ${total} tasks done`}
+        style={{ height: 8, borderRadius: 999, background: 'color-mix(in srgb, var(--ink) 10%, transparent)', overflow: 'hidden', display: 'flex' }}
       >
-        <div style={{
-          width: `${pctComplete}%`,
-          background: 'var(--accent-emerald)',
-          transition: 'width 0.5s ease',
-          borderRadius: completed === total ? 3 : '3px 0 0 3px',
-          flexShrink: 0,
-        }} />
-        <div style={{
-          width: `${pctInProgress}%`,
-          background: 'var(--accent-cyan)',
-          transition: 'width 0.5s ease',
-          flexShrink: 0,
-        }} />
+        <div style={{ width: `${pct(done)}%`, background: 'var(--accent-emerald)', transition: 'width 0.4s ease' }} />
+        <div style={{ width: `${pct(active)}%`, background: 'var(--accent-cyan)', transition: 'width 0.4s ease' }} />
       </div>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        {[
-          { color: 'var(--accent-emerald)', label: `${completed} done`      },
-          { color: 'var(--accent-cyan)', label: `${inProgress} active`   },
-          { color: 'color-mix(in srgb, var(--ink) 15%, transparent)', label: `${notStarted} queued` },
-        ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 6, height: 6, borderRadius: 2, background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
+      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {done} done · {active} in progress · {total - done - active} not started
+      </span>
     </div>
   );
 }
 
-export default function MetricsBanner({ project, simulationData, taskCount = 0, tasks = [] }) {
-  const baselineBudget = project?.baselineBudget || 100000;
-  const baselineDays   = project?.baselineDurationDays || 20;
-  const penaltyRate    = project?.reworkPenaltyRate != null
-    ? Math.round(project.reworkPenaltyRate * 100)
-    : 25;
+export default function MetricsBanner({ project, simulationData, tasks = [] }) {
+  const budget = Number(project?.baselineBudget ?? 0);
+  const days = Number(project?.baselineDurationDays ?? 0);
+  const ratePct = project?.reworkPenaltyRate != null ? Math.round(project.reworkPenaltyRate * 100) : null;
 
-  const simFin   = simulationData?.financialSummary;
-  const simSched = simulationData?.scheduleSummary;
-
-  const projectedBudget = simFin?.projectedBudget ?? baselineBudget;
-  const netBudgetDelta  = simFin?.netBudgetDelta  ?? 0;
-  const projectedDays   = simSched?.projectedDurationDays ?? baselineDays;
-  const netDaysDelta    = simSched?.netDaysDelta   ?? 0;
+  const fin = simulationData?.financialSummary;
+  const sched = simulationData?.scheduleSummary;
+  const exploring = Boolean(fin && sched);
 
   return (
     <section
-      aria-label="Project metrics banner"
+      aria-label="Project numbers"
+      data-tour="metrics"
       style={{
         background: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
-        padding: '10px 20px',
+        padding: '12px 24px',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
-        gap: '12px 20px',
-        minHeight: 56,
+        gap: '14px 24px',
       }}
     >
-      {/* Budget KPIs */}
-      <KpiBlock
-        label="Baseline Budget"
-        value={`₹${Number(baselineBudget).toLocaleString('en-IN')}`}
-        delta={0}
-      />
-
+      <Kpi metric={METRICS.agreedBudget} value={formatINR(budget)} align="start" />
       <Divider />
+      <Kpi metric={METRICS.agreedTimeline} value={formatDays(days)} />
 
-      <KpiBlock
-        label="Projected Budget"
-        value={`₹${Number(projectedBudget).toLocaleString('en-IN')}`}
-        delta={netBudgetDelta !== 0
-          ? `${netBudgetDelta > 0 ? '+' : ''}₹${Number(netBudgetDelta).toLocaleString('en-IN')}`
-          : 0}
-      />
-
-      <Divider />
-
-      {/* Schedule KPIs */}
-      <KpiBlock
-        label="Baseline Duration"
-        value={`${baselineDays}d`}
-        delta={0}
-      />
-
-      <Divider />
-
-      <KpiBlock
-        label="Projected Duration"
-        value={`${projectedDays}d`}
-        delta={netDaysDelta !== 0 ? `${netDaysDelta > 0 ? '+' : ''}${netDaysDelta}d` : 0}
-      />
-
-      <Divider />
-
-      {/* Rework Penalty */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.07em',
-          color: 'var(--text-faint)'
-        }}>
-          Rework Penalty
-        </span>
-        <span style={{
-          fontSize: 15, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          color: 'var(--accent-cyan)',
-          letterSpacing: '-0.02em'
-        }}>
-          {penaltyRate}% <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-faint)' }}>/ hop</span>
-        </span>
-      </div>
-
-      <Divider />
-
-      {/* Graph Nodes */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{
-          fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.07em',
-          color: 'var(--text-faint)'
-        }}>
-          Graph Nodes
-        </span>
-        <span style={{
-          fontSize: 15, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          color: 'var(--text-secondary)',
-          letterSpacing: '-0.02em'
-        }}>
-          {taskCount} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-faint)' }}>tasks</span>
-        </span>
-      </div>
-
-      {/* Task Progress Bar (spacer + right aligned) */}
-      {tasks.length > 0 && (
+      {exploring && (
         <>
-          <div style={{ flex: 1, minWidth: 20 }} />
-          <TaskProgressBar tasks={tasks} />
+          <Divider />
+          <Kpi metric={METRICS.budgetAfter} value={formatINR(fin.projectedBudget)}>
+            <DeltaBadge amount={Number(fin.netBudgetDelta)} text={formatINRDelta(fin.netBudgetDelta)} />
+          </Kpi>
+          <Divider />
+          <Kpi metric={METRICS.timelineAfter} value={formatDays(sched.projectedDurationDays)}>
+            <DeltaBadge amount={Number(sched.netDaysDelta)} text={formatDaysDelta(sched.netDaysDelta)} />
+          </Kpi>
         </>
       )}
+
+      {ratePct != null && (
+        <>
+          <Divider />
+          <Kpi metric={METRICS.redoCost} value={`${ratePct}%`}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>of a task’s hours</span>
+          </Kpi>
+        </>
+      )}
+
+      <div style={{ flex: 1, minWidth: 16 }} />
+      <Progress tasks={tasks} />
     </section>
   );
 }

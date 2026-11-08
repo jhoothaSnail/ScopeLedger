@@ -117,16 +117,6 @@ export const MOCK_PROJECT_BOARD = {
   ]
 };
 
-export const MOCK_CHANGE_ORDERS = [
-  {
-    id: 1,
-    projectId: 1,
-    targetTaskId: 102,
-    targetTaskTitle: "Email Login API",
-    changeDescription: "Switch Email Login to WhatsApp OTP Login",
-    netCostDelta: 4000.00,
-    netDaysDelta: 0,
-    droppedTasksJson: "[104]",
-    committedAt: "2026-11-07T14:32:00"
-  }
-];
+// Matches a freshly seeded/reset backend: no change orders approved yet. Offline commits
+// are not persisted, so any sample history here would contradict the sample board above.
+export const MOCK_CHANGE_ORDERS = [];
