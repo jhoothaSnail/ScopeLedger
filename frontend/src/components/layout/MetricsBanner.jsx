@@ -11,12 +11,12 @@ function KpiBlock({ label, value, delta, deltaPositiveIsGood = false }) {
     padding: '1px 7px', borderRadius: 4,
     fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
     background: isBad
-      ? 'rgba(244,63,94,0.12)'
-      : 'rgba(16,185,129,0.12)',
+      ? 'color-mix(in srgb, var(--accent-coral) 12%, transparent)'
+      : 'color-mix(in srgb, var(--accent-emerald) 12%, transparent)',
     border: isBad
-      ? '1px solid rgba(244,63,94,0.3)'
-      : '1px solid rgba(16,185,129,0.3)',
-    color: isBad ? '#f43f5e' : '#10b981',
+      ? '1px solid color-mix(in srgb, var(--accent-coral) 30%, transparent)'
+      : '1px solid color-mix(in srgb, var(--accent-emerald) 30%, transparent)',
+    color: isBad ? 'var(--accent-coral)' : 'var(--accent-emerald)',
   };
 
   return (
@@ -40,7 +40,7 @@ function KpiBlock({ label, value, delta, deltaPositiveIsGood = false }) {
         letterSpacing: '-0.02em',
         color: isNeutral
           ? 'var(--text-primary)'
-          : isBad ? '#f43f5e' : isGood ? '#10b981' : 'var(--text-primary)',
+          : isBad ? 'var(--accent-coral)' : isGood ? 'var(--accent-emerald)' : 'var(--text-primary)',
         fontVariantNumeric: 'tabular-nums',
       }}>
         {value}
@@ -53,7 +53,7 @@ function Divider() {
   return (
     <div style={{
       width: 1, height: 32,
-      background: 'rgba(255,255,255,0.08)',
+      background: 'color-mix(in srgb, var(--ink) 8%, transparent)',
       flexShrink: 0
     }} />
   );
@@ -82,7 +82,7 @@ function TaskProgressBar({ tasks = [] }) {
         </span>
         <span style={{
           fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          color: '#10b981'
+          color: 'var(--accent-emerald)'
         }}>
           {pctComplete}%
         </span>
@@ -92,7 +92,7 @@ function TaskProgressBar({ tasks = [] }) {
       <div
         style={{
           height: 5, borderRadius: 3,
-          background: 'rgba(255,255,255,0.07)',
+          background: 'color-mix(in srgb, var(--ink) 7%, transparent)',
           overflow: 'hidden',
           display: 'flex',
         }}
@@ -104,14 +104,14 @@ function TaskProgressBar({ tasks = [] }) {
       >
         <div style={{
           width: `${pctComplete}%`,
-          background: '#10b981',
+          background: 'var(--accent-emerald)',
           transition: 'width 0.5s ease',
           borderRadius: completed === total ? 3 : '3px 0 0 3px',
           flexShrink: 0,
         }} />
         <div style={{
           width: `${pctInProgress}%`,
-          background: '#06b6d4',
+          background: 'var(--accent-cyan)',
           transition: 'width 0.5s ease',
           flexShrink: 0,
         }} />
@@ -120,9 +120,9 @@ function TaskProgressBar({ tasks = [] }) {
       {/* Legend */}
       <div style={{ display: 'flex', gap: 10 }}>
         {[
-          { color: '#10b981', label: `${completed} done`      },
-          { color: '#06b6d4', label: `${inProgress} active`   },
-          { color: 'rgba(255,255,255,0.15)', label: `${notStarted} queued` },
+          { color: 'var(--accent-emerald)', label: `${completed} done`      },
+          { color: 'var(--accent-cyan)', label: `${inProgress} active`   },
+          { color: 'color-mix(in srgb, var(--ink) 15%, transparent)', label: `${notStarted} queued` },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 6, height: 6, borderRadius: 2, background: color, flexShrink: 0 }} />

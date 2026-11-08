@@ -58,7 +58,7 @@ export default function ChangeOrderHistoryModal({ isOpen, onClose, changeOrders 
               Immutable ledger of approved deliverable modifications, financial adjustments, and dropped tasks.
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close audit trail" className="text-slate-400 hover:text-white text-xl leading-none">
+          <button type="button" onClick={onClose} aria-label="Close audit trail" className="text-slate-400 hover:text-slate-100 text-xl leading-none">
             &times;
           </button>
         </div>

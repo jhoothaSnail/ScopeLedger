@@ -42,9 +42,9 @@ function BoardSkeleton() {
 function Toast({ msg }) {
   if (!msg) return null;
   const styles = {
-    error:   { bg: 'rgba(244,63,94,0.12)',  border: 'rgba(244,63,94,0.3)',   color: '#f43f5e' },
-    success: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)',  color: '#10b981' },
-    info:    { bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.3)', color: '#94a3b8' },
+    error:   { bg: 'color-mix(in srgb, var(--accent-coral) 12%, transparent)',  border: 'color-mix(in srgb, var(--accent-coral) 30%, transparent)',   color: 'var(--accent-coral)' },
+    success: { bg: 'color-mix(in srgb, var(--accent-emerald) 12%, transparent)', border: 'color-mix(in srgb, var(--accent-emerald) 30%, transparent)',  color: 'var(--accent-emerald)' },
+    info:    { bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.3)', color: 'var(--text-secondary)' },
   };
   const s = styles[msg.type] || styles.info;
   const icon = msg.type === 'success' ? '✓' : msg.type === 'error' ? '⚠' : 'ℹ';
@@ -79,7 +79,7 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)',
+        background: 'var(--bg-overlay)',
         backdropFilter: 'blur(4px)',
       }}
     >
@@ -95,12 +95,12 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
         <div style={{
           width: 40, height: 40,
           borderRadius: 10,
-          background: 'rgba(6,182,212,0.1)',
-          border: '1px solid rgba(6,182,212,0.25)',
+          background: 'color-mix(in srgb, var(--accent-cyan) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--accent-cyan) 25%, transparent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: 16
         }}>
-          <svg viewBox="0 0 20 20" fill="none" stroke="#06b6d4" strokeWidth={1.5}
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--accent-cyan)" strokeWidth={1.5}
             style={{ width: 20, height: 20 }} aria-hidden="true">
             <path d="M10 2L2 18h16L10 2z" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M10 8v4M10 14h.01" strokeLinecap="round"/>
@@ -136,7 +136,7 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
               fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 500,
               cursor: 'pointer',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--ink) 5%, transparent)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
             Cancel
@@ -145,14 +145,14 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
             onClick={onConfirm}
             style={{
               padding: '8px 20px', borderRadius: 7,
-              background: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(20,184,166,0.12))',
-              border: '1px solid rgba(6,182,212,0.4)',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 18%, transparent), color-mix(in srgb, var(--accent-teal) 12%, transparent))',
+              border: '1px solid color-mix(in srgb, var(--accent-cyan) 40%, transparent)',
               color: 'var(--accent-cyan)',
               fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600,
               cursor: 'pointer',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.26), rgba(20,184,166,0.2))'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(20,184,166,0.12))'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 26%, transparent), color-mix(in srgb, var(--accent-teal) 20%, transparent))'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 18%, transparent), color-mix(in srgb, var(--accent-teal) 12%, transparent))'; }}
           >
             Commit Change
           </button>
@@ -381,11 +381,11 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       {errorMsg && (
         <div style={{
           padding: '8px 24px',
-          background: 'rgba(244,63,94,0.08)',
-          borderBottom: '1px solid rgba(244,63,94,0.2)',
+          background: 'color-mix(in srgb, var(--accent-coral) 8%, transparent)',
+          borderBottom: '1px solid color-mix(in srgb, var(--accent-coral) 20%, transparent)',
           display: 'flex', alignItems: 'center', gap: 8,
           fontFamily: 'var(--font-mono)', fontSize: 11,
-          color: '#f43f5e',
+          color: 'var(--accent-coral)',
         }}>
           <span>⚠</span>
           <span>{errorMsg} — running in offline mock mode</span>

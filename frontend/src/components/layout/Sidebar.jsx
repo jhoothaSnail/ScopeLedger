@@ -1,279 +1,170 @@
 // frontend/src/components/layout/Sidebar.jsx
-// Premium sidebar navigation — the application shell's identity anchor.
-import React from 'react';
+// App navigation + signed-in user's profile menu (theme, help tour, sign out).
+import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from '../../theme/themeContext';
+
+const ICONS = {
+  overview: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+      <rect x="2.5" y="2.5" width="6" height="7" rx="1.5" /><rect x="11.5" y="2.5" width="6" height="4" rx="1.5" />
+      <rect x="11.5" y="9.5" width="6" height="8" rx="1.5" /><rect x="2.5" y="12.5" width="6" height="5" rx="1.5" />
+    </svg>
+  ),
+  board: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+      <circle cx="4" cy="10" r="2.5" /><circle cx="16" cy="5" r="2.5" /><circle cx="16" cy="15" r="2.5" />
+      <path d="M6.5 10 L13.5 5.5M6.5 10 L13.5 14.5" strokeLinecap="round" />
+    </svg>
+  ),
+  changeorders: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+      <path d="M6 2h8l4 4v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" strokeLinejoin="round" />
+      <path d="M14 2v4h4M8 11h4M8 14h2" strokeLinecap="round" />
+    </svg>
+  ),
+};
 
 const NAV_ITEMS = [
-  {
-    key: 'board',
-    label: 'Dependency Board',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-        <circle cx="4"  cy="10" r="2.5" />
-        <circle cx="16" cy="5"  r="2.5" />
-        <circle cx="16" cy="15" r="2.5" />
-        <path d="M6.5 10 L13.5 5.5M6.5 10 L13.5 14.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    badge: null
-  },
-  {
-    key: 'changeorders',
-    label: 'Change Orders',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-        <path d="M6 2h8l4 4v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M14 2v4h4M8 11h4M8 14h2" strokeLinecap="round"/>
-      </svg>
-    ),
-    badge: 'Audit'
-  },
+  { key: 'board', label: 'Project board', hint: 'Tasks and how they connect' },
+  { key: 'changeorders', label: 'Change history', hint: 'Every approved change' },
 ];
 
-export default function Sidebar({
-  activePage = 'board',
-  onNavigate,
-  projectName,
-  isCollapsed,
-  onToggleCollapse
-}) {
+function ProfileMenu({ user, isCollapsed, onSignOut, onStartTour }) {
+  const { theme, toggleTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  // Close on outside click or Escape.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const choose = (fn) => () => { setOpen(false); fn?.(); };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      {open && (
+        <div className="sl-menu" role="menu" aria-label="Profile menu" style={{ bottom: 'calc(100% + 8px)', left: 0 }}>
+          <div style={{ padding: '8px 10px 10px' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{user.email || user.role}</div>
+          </div>
+          <div className="sl-menu-sep" />
+          <button type="button" role="menuitem" className="sl-menu-item" onClick={choose(toggleTheme)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /></svg>
+            {theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          </button>
+          {onStartTour && (
+            <button type="button" role="menuitem" className="sl-menu-item" onClick={choose(onStartTour)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M9.5 9a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01" /></svg>
+              Show me around
+            </button>
+          )}
+          <div className="sl-menu-sep" />
+          <button type="button" role="menuitem" className="sl-menu-item" onClick={choose(onSignOut)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17l5-5-5-5M20 12H9M12 21H5a2 2 0 01-2-2V5a2 2 0 012-2h7" /></svg>
+            Sign out
+          </button>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Account menu for ${user.name}`}
+        className="sl-nav-item"
+        style={{ padding: isCollapsed ? 6 : '8px 10px', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+      >
+        <span className="sl-avatar" style={{ width: 34, height: 34, background: user.avatarColor }}>{user.initials}</span>
+        {!isCollapsed && (
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)' }}>{user.role}</span>
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+export default function Sidebar({ activePage = 'board', onNavigate, projectName, isCollapsed, onToggleCollapse, user, onSignOut, onStartTour, navItems = NAV_ITEMS }) {
   return (
     <aside
-      role="navigation"
-      aria-label="Application navigation"
-      className="relative flex flex-col h-screen bg-[#040509] border-r transition-all duration-200 ease-out shrink-0 z-30"
+      aria-label="Main navigation"
       style={{
-        width: isCollapsed ? '64px' : '240px',
-        borderRight: '1px solid rgba(255,255,255,0.07)',
-        transition: 'width 0.2s cubic-bezier(0.33, 1, 0.68, 1)'
+        width: isCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)',
+        transition: 'width 0.2s var(--ease-out-cubic)',
+        height: '100vh',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border-subtle)',
+        zIndex: 30,
       }}
     >
-      {/* Brand Wordmark */}
-      <div
-        className="flex items-center gap-3 px-4 py-5 border-b overflow-hidden"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', minHeight: '64px' }}
-      >
-        {/* Logo mark */}
-        <div
-          className="shrink-0 flex items-center justify-center rounded-lg font-bold text-xs font-mono"
-          style={{
-            width: 32,
-            height: 32,
-            background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,184,166,0.1))',
-            border: '1px solid rgba(6,182,212,0.3)',
-            color: '#06b6d4',
-            letterSpacing: '0.03em'
-          }}
-          aria-hidden="true"
-        >
-          SL
-        </div>
-
+      {/* Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px', minHeight: 64, borderBottom: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+        <div className="sl-avatar" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent-solid)' }}>SL</div>
         {!isCollapsed && (
-          <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <div
-              className="font-semibold text-sm tracking-tight"
-              style={{ color: '#f1f5f9', letterSpacing: '-0.01em' }}
-            >
-              ScopeLedger
-            </div>
-            <div
-              className="text-xs font-mono"
-              style={{ color: '#64748b', fontSize: '10px' }}
-            >
-              DEV3 · Phase 1
-            </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>ScopeLedger</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Change impact planner</div>
           </div>
         )}
       </div>
 
-      {/* Project Context */}
+      {/* Current project */}
       {!isCollapsed && projectName && (
-        <div
-          className="mx-3 mt-3 mb-1 px-3 py-2 rounded-lg"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)'
-          }}
-        >
-          <div
-            className="text-xs font-mono uppercase tracking-wider mb-0.5"
-            style={{ color: '#475569', fontSize: '10px' }}
-          >
-            Active Project
-          </div>
-          <div
-            className="text-xs font-medium truncate"
-            style={{ color: '#94a3b8', fontSize: '11px' }}
-            title={projectName}
-          >
-            {projectName}
-          </div>
+        <div style={{ margin: '14px 12px 4px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface-hover)', border: '1px solid var(--border-faint)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>Project</div>
+          <div title={projectName} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{projectName}</div>
         </div>
       )}
 
-      {/* Nav Divider Label */}
-      {!isCollapsed && (
-        <div
-          className="px-4 mt-4 mb-1 text-xs uppercase tracking-widest font-semibold"
-          style={{ color: '#475569', fontSize: '10px' }}
-        >
-          Navigation
-        </div>
-      )}
-
-      {/* Nav Items */}
-      <nav className="flex-1 px-2 mt-2 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = activePage === item.key;
-          return (
-            <button
-              key={item.key}
-              onClick={() => onNavigate?.(item.key)}
-              aria-current={isActive ? 'page' : undefined}
-              title={isCollapsed ? item.label : undefined}
-              className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150"
-              style={{
-                background: isActive ? 'rgba(6,182,212,0.1)' : 'transparent',
-                border: isActive ? '1px solid rgba(6,182,212,0.25)' : '1px solid transparent',
-                color: isActive ? '#06b6d4' : '#64748b',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-sans)',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                  e.currentTarget.style.color = '#94a3b8';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#64748b';
-                }
-              }}
-            >
-              {/* Icon */}
-              <span
-                className="shrink-0"
-                style={{ width: 18, height: 18, opacity: isActive ? 1 : 0.7 }}
-              >
-                {item.icon}
-              </span>
-
-              {/* Label */}
-              {!isCollapsed && (
-                <span
-                  className="flex-1 text-xs font-medium truncate"
-                  style={{
-                    fontSize: '12.5px',
-                    letterSpacing: '-0.01em',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {item.label}
-                </span>
-              )}
-
-              {/* Badge */}
-              {!isCollapsed && item.badge && (
-                <span
-                  className="shrink-0 text-xs font-mono px-1.5 py-0.5 rounded"
-                  style={{
-                    fontSize: '9px',
-                    background: 'rgba(99,102,241,0.15)',
-                    color: '#6366f1',
-                    border: '1px solid rgba(99,102,241,0.25)',
-                    letterSpacing: '0.03em'
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* Navigation */}
+      <nav style={{ flex: 1, padding: '12px', display: 'grid', alignContent: 'start', gap: 4 }}>
+        {navItems.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            data-tour={`nav-${item.key}`}
+            className="sl-nav-item"
+            aria-current={activePage === item.key ? 'page' : undefined}
+            onClick={() => onNavigate?.(item.key)}
+            title={isCollapsed ? item.label : item.hint}
+            style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+          >
+            {ICONS[item.key]}
+            {!isCollapsed && <span>{item.label}</span>}
+          </button>
+        ))}
       </nav>
 
-      {/* Bottom: Profile & Collapse */}
-      <div
-        className="mt-auto px-2 pb-4 space-y-1"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '12px' }}
-      >
-        {/* Collapse toggle */}
+      {/* Footer: collapse + profile */}
+      <div style={{ padding: 12, borderTop: '1px solid var(--border-subtle)', display: 'grid', gap: 6 }}>
         <button
+          type="button"
+          className="sl-nav-item"
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg transition-all duration-150"
-          style={{
-            background: 'transparent',
-            border: '1px solid transparent',
-            color: '#475569',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-            e.currentTarget.style.color = '#94a3b8';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#475569';
-          }}
+          style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', fontSize: 13 }}
         >
-          <span className="shrink-0" style={{ width: 18, height: 18 }}>
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
-              {isCollapsed
-                ? <path d="M7 4l6 6-6 6" strokeLinecap="round" strokeLinejoin="round"/>
-                : <path d="M13 4l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round"/>
-              }
-            </svg>
-          </span>
-          {!isCollapsed && (
-            <span className="text-xs" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
-              Collapse sidebar
-            </span>
-          )}
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"
+            style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
+            <path d="M12.5 5l-5 5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {!isCollapsed && 'Collapse'}
         </button>
-
-        {/* User Profile stub */}
-        <div
-          className="flex items-center gap-3 px-2.5 py-2.5 rounded-lg"
-          style={{ cursor: 'default' }}
-        >
-          <div
-            className="shrink-0 flex items-center justify-center rounded-full text-xs font-bold font-mono"
-            style={{
-              width: 28,
-              height: 28,
-              background: 'rgba(99,102,241,0.2)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              color: '#6366f1',
-              fontSize: '10px'
-            }}
-            aria-hidden="true"
-          >
-            D3
-          </div>
-          {!isCollapsed && (
-            <div style={{ overflow: 'hidden' }}>
-              <div
-                className="text-xs font-medium truncate"
-                style={{ color: '#94a3b8', fontSize: '12px' }}
-              >
-                DEV3 Engineer
-              </div>
-              <div
-                className="text-xs font-mono"
-                style={{ color: '#475569', fontSize: '10px' }}
-              >
-                Frontend Lead
-              </div>
-            </div>
-          )}
-        </div>
+        {user && <ProfileMenu user={user} isCollapsed={isCollapsed} onSignOut={onSignOut} onStartTour={onStartTour} />}
       </div>
     </aside>
   );
 }
-

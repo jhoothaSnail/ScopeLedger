@@ -111,7 +111,7 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
   const fin = sim?.financialSummary;
   const sched = sim?.scheduleSummary;
   const inputCls = (bad) =>
-    `w-full mt-1 px-2.5 py-1.5 bg-slate-900 border rounded text-xs text-white font-mono outline-none ${
+    `w-full mt-1 px-2.5 py-1.5 bg-slate-900 border rounded text-xs text-slate-100 font-mono outline-none ${
       bad ? 'border-rose-500' : 'border-slate-700 focus:border-rose-500'
     }`;
 
@@ -125,7 +125,7 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
       {/* Header */}
       <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
         <h3 className="text-sm font-semibold text-slate-100 font-mono tracking-wide">Change Order Simulation</h3>
-        <button type="button" onClick={onClose} aria-label="Close simulation" className="text-slate-400 hover:text-white text-xl leading-none">
+        <button type="button" onClick={onClose} aria-label="Close simulation" className="text-slate-400 hover:text-slate-100 text-xl leading-none">
           &times;
         </button>
       </div>

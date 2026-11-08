@@ -10,13 +10,13 @@ function ImpactTypeBadge({ type }) {
         padding: '2px 8px', borderRadius: 4,
         fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
         textTransform: 'uppercase', letterSpacing: '0.06em',
-        background: 'rgba(244,63,94,0.12)',
-        border: '1px solid rgba(244,63,94,0.3)',
-        color: '#f43f5e'
+        background: 'color-mix(in srgb, var(--accent-coral) 12%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--accent-coral) 30%, transparent)',
+        color: 'var(--accent-coral)'
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: '#f43f5e',
+          background: 'var(--accent-coral)',
           display: 'inline-block',
           animation: 'ping 1.2s cubic-bezier(0,0,0.2,1) infinite'
         }} />
@@ -31,13 +31,13 @@ function ImpactTypeBadge({ type }) {
         padding: '2px 8px', borderRadius: 4,
         fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
         textTransform: 'uppercase', letterSpacing: '0.06em',
-        background: 'rgba(245,158,11,0.12)',
-        border: '1px solid rgba(245,158,11,0.3)',
-        color: '#f59e0b'
+        background: 'color-mix(in srgb, var(--accent-amber) 12%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--accent-amber) 30%, transparent)',
+        color: 'var(--accent-amber)'
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: '#f59e0b',
+          background: 'var(--accent-amber)',
           display: 'inline-block',
           animation: 'ping 1.2s cubic-bezier(0,0,0.2,1) infinite'
         }} />
@@ -50,9 +50,9 @@ function ImpactTypeBadge({ type }) {
 
 function StatusPill({ status }) {
   const map = {
-    COMPLETED: { label: 'Completed', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', color: '#10b981' },
-    IN_PROGRESS: { label: 'In Progress', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)', color: '#06b6d4' },
-    NOT_STARTED: { label: 'Not Started', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', color: '#64748b' },
+    COMPLETED: { label: 'Completed', bg: 'color-mix(in srgb, var(--accent-emerald) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-emerald) 25%, transparent)', color: 'var(--accent-emerald)' },
+    IN_PROGRESS: { label: 'In Progress', bg: 'color-mix(in srgb, var(--accent-cyan) 10%, transparent)', border: 'color-mix(in srgb, var(--accent-cyan) 25%, transparent)', color: 'var(--accent-cyan)' },
+    NOT_STARTED: { label: 'Not Started', bg: 'rgba(100,116,139,0.1)', border: 'rgba(100,116,139,0.25)', color: 'var(--text-muted)' },
   };
   const s = map[status] || map.NOT_STARTED;
   return (
@@ -73,8 +73,8 @@ function TaskPill({ task }) {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 8,
       padding: '5px 10px', borderRadius: 6,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      background: 'color-mix(in srgb, var(--ink) 3%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--ink) 7%, transparent)',
     }}>
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: 10,
@@ -219,7 +219,7 @@ export default function TaskInspector({
               transition: 'background 0.15s, color 0.15s'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--ink) 6%, transparent)';
               e.currentTarget.style.color = 'var(--text-secondary)';
             }}
             onMouseLeave={e => {
@@ -246,9 +246,9 @@ export default function TaskInspector({
                   padding: '2px 8px', borderRadius: 4,
                   fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
-                  background: 'rgba(139,92,246,0.1)',
-                  border: '1px solid rgba(139,92,246,0.25)',
-                  color: '#8b5cf6'
+                  background: 'color-mix(in srgb, var(--accent-violet) 10%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-violet) 25%, transparent)',
+                  color: 'var(--accent-violet)'
                 }}>
                   Optional
                 </span>
@@ -258,9 +258,9 @@ export default function TaskInspector({
                   padding: '2px 8px', borderRadius: 4,
                   fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
-                  background: 'rgba(16,185,129,0.1)',
-                  border: '1px solid rgba(16,185,129,0.25)',
-                  color: '#10b981'
+                  background: 'color-mix(in srgb, var(--accent-emerald) 10%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--accent-emerald) 25%, transparent)',
+                  color: 'var(--accent-emerald)'
                 }}>
                   Proposed Drop
                 </span>
@@ -283,11 +283,11 @@ export default function TaskInspector({
               padding: '10px 12px',
               borderRadius: 8,
               background: impactData.impactType === 'DIRECT_CHANGE'
-                ? 'rgba(244,63,94,0.07)'
-                : 'rgba(245,158,11,0.07)',
+                ? 'color-mix(in srgb, var(--accent-coral) 7%, transparent)'
+                : 'color-mix(in srgb, var(--accent-amber) 7%, transparent)',
               border: `1px solid ${impactData.impactType === 'DIRECT_CHANGE'
-                ? 'rgba(244,63,94,0.25)'
-                : 'rgba(245,158,11,0.25)'}`,
+                ? 'color-mix(in srgb, var(--accent-coral) 25%, transparent)'
+                : 'color-mix(in srgb, var(--accent-amber) 25%, transparent)'}`,
             }}>
               <div style={{ marginBottom: 6 }}>
                 <ImpactTypeBadge type={impactData.impactType} />
@@ -299,7 +299,7 @@ export default function TaskInspector({
                   </div>
                   <div style={{
                     fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                    color: impactData.impactType === 'DIRECT_CHANGE' ? '#f43f5e' : '#f59e0b'
+                    color: impactData.impactType === 'DIRECT_CHANGE' ? 'var(--accent-coral)' : 'var(--accent-amber)'
                   }}>
                     +{impactData.extraHours}h
                   </div>
@@ -310,7 +310,7 @@ export default function TaskInspector({
                   </div>
                   <div style={{
                     fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                    color: impactData.impactType === 'DIRECT_CHANGE' ? '#f43f5e' : '#f59e0b'
+                    color: impactData.impactType === 'DIRECT_CHANGE' ? 'var(--accent-coral)' : 'var(--accent-amber)'
                   }}>
                     +₹{Number(impactData.extraCost).toLocaleString('en-IN')}
                   </div>
@@ -322,7 +322,7 @@ export default function TaskInspector({
                     </div>
                     <div style={{
                       fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                      color: '#f59e0b'
+                      color: 'var(--accent-amber)'
                     }}>
                       +{impactData.delayDays}d
                     </div>
@@ -336,7 +336,7 @@ export default function TaskInspector({
           <div>
             <SectionLabel>Task Metrics</SectionLabel>
             <div style={{
-              background: 'rgba(255,255,255,0.025)',
+              background: 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 8, padding: '10px 12px'
             }}>
@@ -383,11 +383,11 @@ export default function TaskInspector({
           {downstreamTasks.length > 0 && (
             <div style={{
               padding: '10px 12px', borderRadius: 8,
-              background: 'rgba(245,158,11,0.05)',
-              border: '1px solid rgba(245,158,11,0.15)'
+              background: 'color-mix(in srgb, var(--accent-amber) 5%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-amber) 15%, transparent)'
             }}>
               <div style={{
-                fontSize: 11, color: '#f59e0b', fontWeight: 600,
+                fontSize: 11, color: 'var(--accent-amber)', fontWeight: 600,
                 fontFamily: 'var(--font-sans)', marginBottom: 4
               }}>
                 ⚠ Ripple Risk
@@ -417,8 +417,8 @@ export default function TaskInspector({
               borderRadius: 8,
               background: isDropped
                 ? 'rgba(100,116,139,0.08)'
-                : 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,184,166,0.1))',
-              border: `1px solid ${isDropped ? 'rgba(100,116,139,0.2)' : 'rgba(6,182,212,0.4)'}`,
+                : 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 15%, transparent), color-mix(in srgb, var(--accent-teal) 10%, transparent))',
+              border: `1px solid ${isDropped ? 'rgba(100,116,139,0.2)' : 'color-mix(in srgb, var(--accent-cyan) 40%, transparent)'}`,
               color: isDropped ? 'var(--text-faint)' : 'var(--accent-cyan)',
               fontFamily: 'var(--font-sans)',
               fontSize: 13, fontWeight: 600,
@@ -429,13 +429,13 @@ export default function TaskInspector({
             }}
             onMouseEnter={e => {
               if (!isDropped) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.22), rgba(20,184,166,0.16))';
+                e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 22%, transparent), color-mix(in srgb, var(--accent-teal) 16%, transparent))';
                 e.currentTarget.style.transform = 'translateY(-1px)';
               }
             }}
             onMouseLeave={e => {
               if (!isDropped) {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,184,166,0.1))';
+                e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 15%, transparent), color-mix(in srgb, var(--accent-teal) 10%, transparent))';
                 e.currentTarget.style.transform = 'translateY(0)';
               }
             }}

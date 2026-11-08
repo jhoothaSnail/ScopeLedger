@@ -106,7 +106,7 @@ export default function AddTaskDependencyModal({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white text-lg leading-none"
+            className="text-slate-400 hover:text-slate-100 text-lg leading-none"
           >
             &times;
           </button>

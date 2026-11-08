@@ -141,7 +141,7 @@ export default function DependencyBoardCanvas({
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+              <path d="M 0 1 L 10 5 L 0 9 z" style={{ fill: 'var(--text-faint)' }} />
             </marker>
 
             {/* Impacted Rework Marker */}
@@ -154,7 +154,7 @@ export default function DependencyBoardCanvas({
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+              <path d="M 0 1 L 10 5 L 0 9 z" style={{ fill: 'var(--accent-amber)' }} />
             </marker>
 
             {/* Direct Change Marker */}
@@ -167,7 +167,7 @@ export default function DependencyBoardCanvas({
               markerHeight="6"
               orient="auto-start-reverse"
             >
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e" />
+              <path d="M 0 1 L 10 5 L 0 9 z" style={{ fill: 'var(--accent-coral)' }} />
             </marker>
           </defs>
 
