@@ -1,122 +1,93 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+// frontend/src/App.jsx
+// Root: theme + demo-auth providers, sign-in gate, then sidebar + workspace shell.
+import React, { useState } from 'react';
+import Sidebar from './components/layout/Sidebar';
+import WorkspacePage from './pages/WorkspacePage';
+import LoginPage from './pages/LoginPage';
+import OverviewPage from './pages/OverviewPage';
+import GuidedTour from './components/common/GuidedTour';
+import { TOUR_STEPS } from './content/tourSteps';
+import ThemeProvider from './theme/ThemeProvider';
+import AuthProvider from './auth/AuthProvider';
+import { useAuth } from './auth/authContext';
+import './styles/global.css';
+import './styles/board.css';
+import './styles/ui.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const tourKey = (userId) => `scopeledger.tour.done.${userId}`;
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function hasSeenTour(userId) {
+  try {
+    return localStorage.getItem(tourKey(userId)) === '1';
+  } catch {
+    return true; // storage blocked: don't nag on every load
+  }
 }
 
-export default App
+function AppShell() {
+  const { user, signOut } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activePage, setActivePage] = useState('overview');
+  const [projectName, setProjectName] = useState('');
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourCheckedFor, setTourCheckedFor] = useState(null);
+
+  // First sign-in for this person → start the tour once (render-time sync, no effect needed).
+  if (user && tourCheckedFor !== user.id) {
+    setTourCheckedFor(user.id);
+    setTourOpen(!hasSeenTour(user.id));
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  const handleSignOut = () => {
+    setActivePage('overview');
+    setTourOpen(false);
+    signOut();
+  };
+
+  const startTour = () => setTourOpen(true);
+  const closeTour = () => {
+    setTourOpen(false);
+    try {
+      localStorage.setItem(tourKey(user.id), '1');
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-app)', color: 'var(--text-primary)' }}>
+      <Sidebar
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+        activePage={activePage}
+        onNavigate={setActivePage}
+        projectName={projectName}
+        user={user}
+        onSignOut={handleSignOut}
+        onStartTour={startTour}
+      />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        {activePage === 'overview' ? (
+          <OverviewPage user={user} onNavigate={setActivePage} onProjectNameChange={setProjectName} onStartTour={startTour} />
+        ) : (
+          <WorkspacePage activePage={activePage} onNavigate={setActivePage} onProjectNameChange={setProjectName} onStartTour={startTour} />
+        )}
+      </div>
+      <GuidedTour steps={TOUR_STEPS} isOpen={tourOpen} onClose={closeTour} activePage={activePage} onNavigate={setActivePage} />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
