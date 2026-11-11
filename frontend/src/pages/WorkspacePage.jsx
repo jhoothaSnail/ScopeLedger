@@ -45,25 +45,31 @@ function Toast({ msg }) {
   const styles = {
     error:   { bg: 'color-mix(in srgb, var(--accent-coral) 12%, transparent)',  border: 'color-mix(in srgb, var(--accent-coral) 30%, transparent)',   color: 'var(--accent-coral)' },
     success: { bg: 'color-mix(in srgb, var(--accent-emerald) 12%, transparent)', border: 'color-mix(in srgb, var(--accent-emerald) 30%, transparent)',  color: 'var(--accent-emerald)' },
-    info:    { bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.3)', color: 'var(--text-secondary)' },
+    info:    { bg: 'color-mix(in srgb, var(--text-muted) 12%, transparent)', border: 'color-mix(in srgb, var(--text-muted) 35%, transparent)', color: 'var(--text-secondary)' },
   };
   const s = styles[msg.type] || styles.info;
   const icon = msg.type === 'success' ? '✓' : msg.type === 'error' ? '⚠' : 'ℹ';
 
   return (
-    <div style={{
-      position: 'fixed', top: 72, right: 20, zIndex: 100,
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '9px 14px', borderRadius: 8,
-      background: s.bg,
-      border: `1px solid ${s.border}`,
-      color: s.color,
-      fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
-      boxShadow: 'var(--shadow-lg)',
-      animation: 'fadeIn 0.2s ease',
-      maxWidth: 400, wordBreak: 'break-word',
-    }}>
-      <span style={{ flexShrink: 0 }}>{icon}</span>
+    // Solid surface (tint layered on top) so it never blends into the content behind it;
+    // bottom-centre, above the zoom controls, keeps it clear of the metrics banner, legend and drawer.
+    <div
+      role={msg.type === 'error' ? 'alert' : 'status'}
+      aria-live={msg.type === 'error' ? 'assertive' : 'polite'}
+      style={{
+        position: 'fixed', bottom: 72, left: '50%', transform: 'translateX(-50%)', zIndex: 1100,
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 16px', borderRadius: 10,
+        background: `linear-gradient(${s.bg}, ${s.bg}), var(--bg-surface-elevated)`,
+        border: `1px solid ${s.border}`,
+        color: s.color,
+        fontSize: 14, fontWeight: 600,
+        boxShadow: 'var(--shadow-lg)',
+        animation: 'fadeIn 0.2s ease',
+        width: 'max-content', maxWidth: 'min(520px, calc(100vw - 32px))', wordBreak: 'break-word',
+      }}
+    >
+      <span aria-hidden="true" style={{ flexShrink: 0 }}>{icon}</span>
       <span>{msg.text}</span>
     </div>
   );
@@ -164,7 +170,7 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
 }
 
 // ─── Main Page Component ──────────────────────────────────────────────────────
-export default function WorkspacePage({ activePage, onNavigate, onProjectNameChange }) {
+export default function WorkspacePage({ activePage, onNavigate, onProjectNameChange, onStartTour }) {
   const [board, setBoard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -281,7 +287,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
     setConfirmDialog({ isOpen: false, payload: null });
     try {
       await commitChangeOrder(1, payload);
-      showToast('Scope change committed successfully to project ledger!', 'success');
+      showToast('Change approved and saved to the change history.', 'success');
       setSelectedTask(null);
       setSimulationData(null);
       setDroppedTaskIds([]);
@@ -373,6 +379,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
         onOpenAuditLog={handleOpenAudit}
         onOpenAddModal={() => setIsAddModalOpen(true)}
         isLiveApi={!errorMsg && !isOffline}
+        onOpenHelp={onStartTour}
       />
 
       {/* Metrics Banner */}
@@ -487,8 +494,8 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       {/* Confirm Commit Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        title="Commit Scope Change?"
-        message={`This will permanently update "${selectedTask?.title}" and recalculate downstream impacts on the project ledger. This action cannot be undone.`}
+        title="Approve this change?"
+        message={`This updates "${selectedTask?.title}", removes any extras you switched off, and adjusts the agreed budget and timeline. It is recorded in the change history and cannot be undone.`}
         onConfirm={handleConfirmCommit}
         onCancel={handleCancelCommit}
       />

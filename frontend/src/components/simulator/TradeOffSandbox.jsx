@@ -1,23 +1,24 @@
 // frontend/src/components/simulator/TradeOffSandbox.jsx
 // Toggle switches for server-approved, safe-to-drop optional tasks (README §2.3).
 import React from 'react';
+import { formatDays } from '../../content/format';
 
 const inr = (v) => Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
 export default function TradeOffSandbox({ candidates = [], selectedDropIds = [], onToggleDrop, disabled = false }) {
   return (
-    <section className="mt-4 p-3.5 bg-slate-900/90 border border-slate-800 rounded-lg shadow-inner" aria-label="Optional scope trade-offs">
+    <section className="mt-4 p-3.5 bg-slate-900/90 border border-slate-800 rounded-lg shadow-inner" aria-label="Optional extras you could remove" data-tour="tradeoffs">
       <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[11px] font-mono tracking-wider text-slate-400 uppercase font-semibold">
-          Optional Scope Trade-Offs
+        <span className="text-xs tabular-nums text-slate-400 font-semibold">
+          Optional extras you could remove
         </span>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-          Safe to Drop
+        <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tabular-nums">
+          Saves money
         </span>
       </div>
 
       {candidates.length === 0 ? (
-        <p className="text-xs text-slate-500 py-2">No unstarted optional leaf tasks available to drop.</p>
+        <p className="text-xs text-slate-500 py-2">No optional extras can be removed right now — they have either started or other tasks rely on them.</p>
       ) : (
         <ul className="space-y-2">
           {candidates.map((task) => {
@@ -28,7 +29,7 @@ export default function TradeOffSandbox({ candidates = [], selectedDropIds = [],
                   type="button"
                   role="switch"
                   aria-checked={isDropped}
-                  aria-label={`Drop ${task.title}`}
+                  aria-label={`Remove ${task.title} from scope`}
                   title={task.rationale}
                   disabled={disabled}
                   onClick={() => onToggleDrop?.(task.taskId)}
@@ -42,8 +43,8 @@ export default function TradeOffSandbox({ candidates = [], selectedDropIds = [],
                     <span className={`text-xs font-medium ${isDropped ? 'line-through text-slate-500' : 'text-slate-200'}`}>
                       {task.title}
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono mt-0.5">
-                      -{task.savedDays}d | -₹{inr(task.savedCost)}
+                    <span className="text-[11px] text-slate-500 tabular-nums mt-0.5">
+                      Saves {formatDays(task.savedDays)} · ₹{inr(task.savedCost)}
                     </span>
                   </span>
                   <span

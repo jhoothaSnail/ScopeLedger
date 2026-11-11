@@ -50,7 +50,9 @@ const Divider = () => (
   <div aria-hidden="true" style={{ width: 1, height: 36, background: 'var(--border-subtle)', flexShrink: 0 }} />
 );
 
-function Progress({ tasks }) {
+function Progress({ tasks: allTasks }) {
+  // Tasks removed from scope no longer count toward the work to be done.
+  const tasks = allTasks.filter((t) => t.isActive !== false);
   const total = tasks.length;
   if (!total) return null;
   const done = tasks.filter((t) => t.status === 'COMPLETED').length;

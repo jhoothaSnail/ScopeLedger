@@ -185,3 +185,19 @@
   background: color-mix(in srgb, var(--accent-cyan) 14%, transparent); color: var(--accent-cyan); }
 .sl-action-icon svg { width: 20px; height: 20px; }
 @media (prefers-reduced-motion: reduce) { .sl-action-card:hover { transform: none; } }
+
+/* ---------- Guided tour ---------- */
+.sl-tour { position: fixed; inset: 0; z-index: 1000; }
+.sl-tour-shield { position: absolute; inset: 0; }
+.sl-tour-dim { position: absolute; inset: 0; background: var(--bg-overlay); }
+.sl-tour-spot {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px var(--bg-overlay);
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  pointer-events: none;
+  transition: top 0.25s var(--ease-out-cubic), left 0.25s var(--ease-out-cubic),
+              width 0.25s var(--ease-out-cubic), height 0.25s var(--ease-out-cubic);
+}
+.sl-tour-card { position: fixed; padding: 18px 20px; box-shadow: var(--shadow-xl); z-index: 1; }

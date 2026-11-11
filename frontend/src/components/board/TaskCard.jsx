@@ -10,12 +10,13 @@ export default function TaskCard({
   isDropped,        // boolean (task toggled off in TradeOffSandbox)
   onSelectTask
 }) {
+  const isRemoved = task.isActive === false; // approved earlier and taken out of scope (saved on the server)
   const isDirectChange = impactData?.impactType === "DIRECT_CHANGE";
   const isDownstreamRework = impactData?.impactType === "DOWNSTREAM_REWORK";
 
   // Dynamic CSS styling for domino ripple
   let rippleClass = "";
-  if (isDropped) {
+  if (isRemoved || isDropped) {
     rippleClass = "card-state-dropped";
   } else if (isDirectChange) {
     rippleClass = "card-state-direct-change";
@@ -31,12 +32,17 @@ export default function TaskCard({
   };
 
   const totalCost = Number(task.estimatedHours) * Number(task.hourlyRate);
+  const showImpact = impactData && !isDropped && !isRemoved;
   const impactLabel = isDirectChange ? IMPACT.DIRECT_CHANGE : IMPACT.DOWNSTREAM_REWORK;
+
+  const handleSelect = () => {
+    if (!isRemoved) onSelectTask(task); // nothing to explore on a task that is no longer in scope
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onSelectTask(task);
+      handleSelect();
     }
   };
 
@@ -45,16 +51,18 @@ export default function TaskCard({
       role="button"
       tabIndex={0}
       data-tour={`task-${task.id}`}
-      onClick={() => onSelectTask(task)}
+      onClick={handleSelect}
+      aria-disabled={isRemoved || undefined}
+      title={isRemoved ? 'This task was removed from the project scope and can no longer be changed.' : undefined}
       onKeyDown={handleKeyDown}
       aria-pressed={isSelected}
-      aria-label={`${task.title}. ${statusLabel(task.status)}${task.isOptional ? ', optional' : ''}.${impactData && !isDropped ? ` ${impactLabel.label}.` : ''}${isDropped ? ' Removed from scope.' : ''} Press Enter for details.`}
+      aria-label={`${task.title}. ${statusLabel(task.status)}${task.isOptional ? ', optional' : ''}.${impactData && !isDropped ? ` ${impactLabel.label}.` : ''}${isDropped || isRemoved ? ' Removed from scope.' : ' Press Enter for details.'}`}
       style={{
         left: `${task.posX || 0}px`,
         top: `${task.posY || 0}px`,
         width: '260px'
       }}
-      className={`absolute select-none cursor-pointer rounded-xl p-3.5 bg-slate-900 border transition-all duration-200 shadow-lg hover:shadow-cyan-950/20 hover:scale-[1.01] ${
+      className={`absolute select-none ${isRemoved ? 'cursor-not-allowed' : 'cursor-pointer'} rounded-xl p-3.5 bg-slate-900 border transition-all duration-200 shadow-lg hover:shadow-cyan-950/20 hover:scale-[1.01] ${
         isSelected
           ? 'border-cyan-400 ring-2 ring-cyan-400/30'
           : 'border-slate-800 hover:border-slate-700'
@@ -74,7 +82,7 @@ export default function TaskCard({
       </div>
 
       {/* Title */}
-      <h4 className={`text-sm font-semibold text-slate-100 line-clamp-2 mb-2.5 ${isDropped ? 'line-through text-slate-400' : ''}`}>
+      <h4 className={`text-sm font-semibold text-slate-100 line-clamp-2 mb-2.5 ${isDropped || isRemoved ? 'line-through text-slate-400' : ''}`}>
         {task.title}
       </h4>
 
@@ -95,7 +103,7 @@ export default function TaskCard({
       </div>
 
       {/* Impact of the change being explored */}
-      {impactData && !isDropped && (
+      {showImpact && (
         <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center justify-between gap-2 text-xs" title={impactLabel.help}>
           <span className={`${isDirectChange ? 'text-rose-400' : 'text-amber-400'} font-semibold flex items-center gap-1.5`}>
             <span className={`w-2 h-2 rounded-full ${isDirectChange ? 'bg-rose-400' : 'bg-amber-400'} motion-safe:animate-ping`} />
@@ -108,9 +116,9 @@ export default function TaskCard({
       )}
 
       {/* Removed from scope */}
-      {isDropped && (
+      {(isDropped || isRemoved) && (
         <div className="mt-2 text-center text-xs font-medium text-emerald-400 bg-emerald-950/40 py-1 rounded border border-emerald-500/30" title={IMPACT.DROPPED.help}>
-          ✓ {IMPACT.DROPPED.label} · saves {formatINR(totalCost)}
+          ✓ {IMPACT.DROPPED.label}{isRemoved ? '' : ` · saves ${formatINR(totalCost)}`}
         </div>
       )}
     </div>

@@ -5,6 +5,8 @@ import Sidebar from './components/layout/Sidebar';
 import WorkspacePage from './pages/WorkspacePage';
 import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
+import GuidedTour from './components/common/GuidedTour';
+import { TOUR_STEPS } from './content/tourSteps';
 import ThemeProvider from './theme/ThemeProvider';
 import AuthProvider from './auth/AuthProvider';
 import { useAuth } from './auth/authContext';
@@ -12,11 +14,29 @@ import './styles/global.css';
 import './styles/board.css';
 import './styles/ui.css';
 
+const tourKey = (userId) => `scopeledger.tour.done.${userId}`;
+
+function hasSeenTour(userId) {
+  try {
+    return localStorage.getItem(tourKey(userId)) === '1';
+  } catch {
+    return true; // storage blocked: don't nag on every load
+  }
+}
+
 function AppShell() {
   const { user, signOut } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePage, setActivePage] = useState('overview');
   const [projectName, setProjectName] = useState('');
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourCheckedFor, setTourCheckedFor] = useState(null);
+
+  // First sign-in for this person → start the tour once (render-time sync, no effect needed).
+  if (user && tourCheckedFor !== user.id) {
+    setTourCheckedFor(user.id);
+    setTourOpen(!hasSeenTour(user.id));
+  }
 
   if (!user) {
     return <LoginPage />;
@@ -24,7 +44,18 @@ function AppShell() {
 
   const handleSignOut = () => {
     setActivePage('overview');
+    setTourOpen(false);
     signOut();
+  };
+
+  const startTour = () => setTourOpen(true);
+  const closeTour = () => {
+    setTourOpen(false);
+    try {
+      localStorage.setItem(tourKey(user.id), '1');
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -37,14 +68,16 @@ function AppShell() {
         projectName={projectName}
         user={user}
         onSignOut={handleSignOut}
+        onStartTour={startTour}
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {activePage === 'overview' ? (
-          <OverviewPage user={user} onNavigate={setActivePage} onProjectNameChange={setProjectName} />
+          <OverviewPage user={user} onNavigate={setActivePage} onProjectNameChange={setProjectName} onStartTour={startTour} />
         ) : (
-          <WorkspacePage activePage={activePage} onNavigate={setActivePage} onProjectNameChange={setProjectName} />
+          <WorkspacePage activePage={activePage} onNavigate={setActivePage} onProjectNameChange={setProjectName} onStartTour={startTour} />
         )}
       </div>
+      <GuidedTour steps={TOUR_STEPS} isOpen={tourOpen} onClose={closeTour} activePage={activePage} onNavigate={setActivePage} />
     </div>
   );
 }

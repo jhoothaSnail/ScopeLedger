@@ -180,6 +180,9 @@ p { margin: 0; }
 /* ============================
    Scrollbar
    ============================ */
+/* Firefox / standard */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-muted) 40%, transparent) transparent; }
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
