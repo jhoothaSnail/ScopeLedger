@@ -2,7 +2,9 @@
 // Central REST API fetcher with configurable offline/mock toggle and graceful error handling
 
 export const USE_MOCK_API = false;
-const API_BASE = "http://localhost:8080/api/v1";
+// Backend address. Set VITE_API_BASE at build time for deployments (e.g. https://api.example.com/api/v1);
+// local development falls back to the Spring Boot dev server.
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1").replace(/\/+$/, "");
 
 export async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;

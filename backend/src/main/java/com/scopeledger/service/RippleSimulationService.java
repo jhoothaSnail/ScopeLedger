@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -234,7 +235,8 @@ public class RippleSimulationService {
                 .map(l -> new ChangeOrderLogDto(l.getId(), l.getProjectId(), l.getTargetTaskId(),
                         titles.getOrDefault(l.getTargetTaskId(), "Task #" + l.getTargetTaskId()),
                         l.getChangeDescription(), money(BigDecimal.valueOf(l.getNetCostDelta())),
-                        l.getNetDaysDelta(), l.getDroppedTasksJson(), l.getCommittedAt()))
+                        l.getNetDaysDelta(), l.getDroppedTasksJson(),
+                        l.getCommittedAt() == null ? null : l.getCommittedAt().atZone(ZoneId.systemDefault()).toOffsetDateTime()))
                 .toList();
     }
 

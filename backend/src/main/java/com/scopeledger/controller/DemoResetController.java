@@ -14,7 +14,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * {@code POST /api/v1/demo/reset}: re-runs schema.sql + data.sql to restore the 8-task demo
+ * {@code POST /api/v1/demo/reset}: wipes everything (reset.sql), then re-runs schema.sql + data.sql to restore the 8-task demo
  * between evaluator runs. Guarded by {@code app.demo.reset-enabled}.
  */
 @RestController
@@ -36,7 +36,7 @@ public class DemoResetController {
             throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_RESET_DISABLED", "Demo reset is disabled on this server.");
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator(
-                new ClassPathResource("schema.sql"), new ClassPathResource("data.sql"));
+                new ClassPathResource("reset.sql"), new ClassPathResource("schema.sql"), new ClassPathResource("data.sql"));
         populator.setSqlScriptEncoding("UTF-8");
         populator.execute(dataSource);
         return Map.of("message", "Demo project restored to its baseline 8-task state.",

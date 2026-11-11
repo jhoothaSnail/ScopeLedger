@@ -1,9 +1,12 @@
 package com.scopeledger.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
-/** Flat view of one immutable audit-log row for {@code GET .../change-orders}. */
+/**
+ * Flat view of one immutable audit-log row for {@code GET .../change-orders}.
+ * {@code committedAt} carries a UTC offset so clients in any timezone render the correct time.
+ */
 public record ChangeOrderLogDto(
         Long id,
         Long projectId,
@@ -13,5 +16,5 @@ public record ChangeOrderLogDto(
         BigDecimal netCostDelta,
         Integer netDaysDelta,
         String droppedTasksJson,
-        LocalDateTime committedAt
+        OffsetDateTime committedAt
 ) {}

@@ -1,13 +1,9 @@
 -- ScopeLedger schema (MySQL 8 + H2 MySQL-mode compatible).
--- Re-run on every startup and by POST /api/v1/demo/reset, so tables are dropped first
--- in reverse foreign-key order.
+-- IDEMPOTENT: runs on every start and never drops data. Tables are only created when missing.
+-- (Dropping lives in reset.sql, used solely by POST /api/v1/demo/reset.)
+-- Indexes on project_id come for free: InnoDB creates one for every FOREIGN KEY column.
 
-DROP TABLE IF EXISTS change_order_logs;
-DROP TABLE IF EXISTS task_dependencies;
-DROP TABLE IF EXISTS deliverable_tasks;
-DROP TABLE IF EXISTS projects;
-
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id                     BIGINT         NOT NULL AUTO_INCREMENT,
     name                   VARCHAR(200)   NOT NULL,
     baseline_budget        DECIMAL(14, 2) NOT NULL,
@@ -17,7 +13,7 @@ CREATE TABLE projects (
     CONSTRAINT chk_projects_rate CHECK (rework_penalty_rate >= 0 AND rework_penalty_rate <= 1)
 );
 
-CREATE TABLE deliverable_tasks (
+CREATE TABLE IF NOT EXISTS deliverable_tasks (
     id              BIGINT         NOT NULL AUTO_INCREMENT,
     project_id      BIGINT         NOT NULL,
     title           VARCHAR(200)   NOT NULL,
@@ -33,9 +29,8 @@ CREATE TABLE deliverable_tasks (
     CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
     CONSTRAINT chk_tasks_status CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'))
 );
-CREATE INDEX idx_tasks_project ON deliverable_tasks (project_id);
 
-CREATE TABLE task_dependencies (
+CREATE TABLE IF NOT EXISTS task_dependencies (
     id                   BIGINT NOT NULL AUTO_INCREMENT,
     project_id           BIGINT NOT NULL,
     prerequisite_task_id BIGINT NOT NULL,
@@ -47,10 +42,9 @@ CREATE TABLE task_dependencies (
     CONSTRAINT uq_deps_edge UNIQUE (prerequisite_task_id, dependent_task_id),
     CONSTRAINT chk_deps_no_self_loop CHECK (prerequisite_task_id <> dependent_task_id)
 );
-CREATE INDEX idx_deps_project ON task_dependencies (project_id);
 
 -- Immutable audit log of approved change orders (append-only by convention).
-CREATE TABLE change_order_logs (
+CREATE TABLE IF NOT EXISTS change_order_logs (
     id                 BIGINT         NOT NULL AUTO_INCREMENT,
     project_id         BIGINT         NOT NULL,
     target_task_id     BIGINT         NOT NULL,
@@ -62,4 +56,3 @@ CREATE TABLE change_order_logs (
     PRIMARY KEY (id),
     CONSTRAINT fk_logs_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
 );
-CREATE INDEX idx_logs_project ON change_order_logs (project_id);
