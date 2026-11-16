@@ -2,8 +2,9 @@
 // Demo sign-in (frontend only, by design): stores a display profile in this browser.
 // There is no password and no server-side authentication — it personalises the UI only.
 import React, { useMemo, useState } from 'react';
-import { AuthContext } from './authContext';
+import { AuthContext, FRESH_SIGN_IN_KEY } from './authContext';
 import { buildUser } from './profile';
+import { setApiActor } from '../services/apiClient';
 
 const STORAGE_KEY = 'scopeledger.session';
 
@@ -20,13 +21,21 @@ function readSession() {
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(readSession);
+  setApiActor(user); // keep API role headers in step with the session (cheap, idempotent)
 
   const value = useMemo(() => ({
     user,
     signIn(profile) {
       const result = buildUser(profile);
       if (result.user) {
+        setApiActor(result.user);
         setUser(result.user);
+        try {
+          // Marks a new sign-in for this tab so the guided tour opens (a page refresh does not).
+          sessionStorage.setItem(FRESH_SIGN_IN_KEY, result.user.id);
+        } catch {
+          /* tour simply won't auto-open */
+        }
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
         } catch {
@@ -36,6 +45,7 @@ export default function AuthProvider({ children }) {
       return result;
     },
     signOut() {
+      setApiActor(null);
       setUser(null);
       try {
         localStorage.removeItem(STORAGE_KEY);

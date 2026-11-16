@@ -6,14 +6,26 @@ export const USE_MOCK_API = false;
 // local development falls back to the Spring Boot dev server.
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8080/api/v1").replace(/\/+$/, "");
 
+// Signed-in demo profile, sent with every call so the server can apply the role rules.
+// The name is URL-encoded because HTTP headers only allow Latin-1 characters.
+let actorHeaders = {};
+
+/** Called by AuthProvider whenever the signed-in user changes (null when signed out). */
+export function setApiActor(user) {
+  actorHeaders = user
+    ? { "X-User-Role": user.role, "X-User-Name": encodeURIComponent(user.name) }
+    : {};
+}
+
 export async function apiFetch(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const config = {
+    ...options,
     headers: {
       "Content-Type": "application/json",
+      ...actorHeaders,
       ...(options.headers || {})
-    },
-    ...options
+    }
   };
 
   try {

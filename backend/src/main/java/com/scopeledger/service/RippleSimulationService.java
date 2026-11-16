@@ -326,6 +326,11 @@ public class RippleSimulationService {
         }
     }
 
+    /** @throws ResourceNotFoundException when the project does not exist */
+    public void requireProjectExists(Long projectId) {
+        requireProject(projectId);
+    }
+
     private Project requireProject(Long projectId) {
         return projectRepo.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project " + projectId + " not found."));

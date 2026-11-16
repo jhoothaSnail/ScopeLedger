@@ -30,41 +30,59 @@ export async function fetchProjectBoard(projectId = 1) {
   }
 }
 
-export async function createDeliverableTask(projectId = 1, taskData) {
-  if (USE_MOCK_API) {
-    const newTask = {
-      id: Date.now(),
-      projectId,
-      title: taskData.title,
-      status: taskData.status || "NOT_STARTED",
-      estimatedHours: Number(taskData.estimatedHours) || 8,
-      hourlyRate: Number(taskData.hourlyRate) || 1000,
-      durationDays: Number(taskData.durationDays) || 2,
-      isOptional: Boolean(taskData.isOptional),
-      isActive: true,
-      posX: Number(taskData.posX) || 200,
-      posY: Number(taskData.posY) || 200
-    };
-    localBoard.tasks.push(newTask);
-    return Promise.resolve(newTask);
+/** Adds a task in local sample mode, including its links (offline only — nothing is saved). */
+function createLocalTask(projectId, taskData) {
+  const newTask = {
+    id: Date.now(),
+    projectId,
+    title: taskData.title,
+    status: taskData.status || "NOT_STARTED",
+    estimatedHours: Number(taskData.estimatedHours) || 8,
+    hourlyRate: Number(taskData.hourlyRate) || 1000,
+    durationDays: Number(taskData.durationDays) || 1,
+    isOptional: Boolean(taskData.isOptional),
+    isActive: true,
+    posX: Number(taskData.posX) || 200,
+    posY: Number(taskData.posY) || 200
+  };
+  localBoard.tasks.push(newTask);
+  let edgeId = Date.now() + 1;
+  for (const id of taskData.dependsOnTaskIds || []) {
+    localBoard.dependencies.push({ id: edgeId++, prerequisiteTaskId: id, dependentTaskId: newTask.id });
   }
+  for (const id of taskData.neededByTaskIds || []) {
+    localBoard.dependencies.push({ id: edgeId++, prerequisiteTaskId: newTask.id, dependentTaskId: id });
+  }
+  return newTask;
+}
 
-  try {
-    return await apiFetch(`/projects/${projectId}/tasks`, {
-      method: 'POST',
-      body: JSON.stringify(taskData)
-    });
-  } catch {
-    // If backend isn't ready yet, insert locally so user experience is smooth
-    const newTask = {
-      id: Date.now(),
-      projectId,
-      ...taskData,
-      isActive: true
-    };
-    localBoard.tasks.push(newTask);
-    return newTask;
+/**
+ * Creates a task and, in the same server transaction, its links
+ * (taskData.dependsOnTaskIds / taskData.neededByTaskIds).
+ * Server errors (no permission, circular link, validation) are passed on to the form; the local
+ * copy is only used when the board itself is already showing offline sample data.
+ */
+export async function createDeliverableTask(projectId = 1, taskData) {
+  if (USE_MOCK_API || usingFallback) {
+    return createLocalTask(projectId, taskData);
   }
+  return apiFetch(`/projects/${projectId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify(taskData)
+  });
+}
+
+/** Saves a task's progress (NOT_STARTED | IN_PROGRESS | COMPLETED). Project Manager or Team Member. */
+export async function updateTaskStatus(projectId = 1, taskId, status) {
+  if (USE_MOCK_API || usingFallback) {
+    const task = localBoard.tasks.find((t) => t.id === taskId);
+    if (task) task.status = status;
+    return Promise.resolve(task ? { ...task } : null);
+  }
+  return apiFetch(`/projects/${projectId}/tasks/${taskId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
 }
 
 export async function createTaskDependency(projectId = 1, depData) {
@@ -105,12 +123,12 @@ export async function resetDemoData() {
     return Promise.resolve({ message: "Mock project board restored to baseline state." });
   }
 
-  try {
-    return await apiFetch('/demo/reset', { method: 'POST' });
-  } catch {
+  if (usingFallback) { // offline sample data: restore the local copy
     localBoard = JSON.parse(JSON.stringify(MOCK_PROJECT_BOARD));
     return { message: "Reset to demo seed state." };
   }
+  return apiFetch('/demo/reset', { method: 'POST' }); // errors (e.g. no permission) reach the UI
+
 }
 
 export async function fetchChangeOrders(projectId = 1) {

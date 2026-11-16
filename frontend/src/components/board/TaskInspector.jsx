@@ -1,6 +1,8 @@
 // frontend/src/components/board/TaskInspector.jsx
 // Right-side inspector panel: task details, dependency context, impact summary, CTA.
-import React from 'react';
+import React, { useState } from 'react';
+import DecisionBar from '../requests/DecisionBar';
+import { formatDaysDelta, formatHours, formatINRDelta } from '../../content/format';
 
 function ImpactTypeBadge({ type }) {
   if (type === 'DIRECT_CHANGE') {
@@ -119,6 +121,45 @@ function MetricRow({ label, value, valueStyle }) {
   );
 }
 
+const PROGRESS_OPTIONS = [
+  ['NOT_STARTED', 'Not started'],
+  ['IN_PROGRESS', 'In progress'],
+  ['COMPLETED', 'Done'],
+];
+
+/** Lets the people doing the work keep a task's progress current (saved on the server for everyone). */
+function ProgressControl({ task, onChangeStatus }) {
+  const [saving, setSaving] = useState(null);
+  const choose = async (status) => {
+    if (status === task.status || saving) return;
+    setSaving(status);
+    await onChangeStatus(task, status);
+    setSaving(null);
+  };
+  return (
+    <div data-tour="task-progress">
+      <SectionLabel>Update progress</SectionLabel>
+      <div role="radiogroup" aria-label={`Progress of ${task.title}`} style={{ display: 'flex', gap: 6 }}>
+        {PROGRESS_OPTIONS.map(([value, label]) => {
+          const active = task.status === value;
+          return (
+            <button key={value} type="button" role="radio" aria-checked={active}
+              disabled={Boolean(saving)}
+              onClick={() => choose(value)}
+              className={`sl-btn ${active ? 'sl-btn-primary' : ''}`}
+              style={{ flex: 1, fontSize: 12, padding: '6px 4px', minHeight: 32 }}>
+              {saving === value ? 'Saving…' : label}
+            </button>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'var(--font-sans)', margin: '6px 0 0' }}>
+        Progress decides how much work must be redone when something this task depends on changes.
+      </p>
+    </div>
+  );
+}
+
 export default function TaskInspector({
   task,
   allTasks = [],
@@ -126,7 +167,12 @@ export default function TaskInspector({
   impactData,
   isDropped,
   onOpenSimulation,
-  onClose
+  onClose,
+  pendingRequests = [], // change requests for this task waiting for a decision (shared via the server)
+  canDecide = false,    // Project Manager / Finance Lead
+  onDecideRequest,      // (request, 'approve'|'reject', note) => Promise<boolean>
+  canUpdateProgress = false, // Project Manager / Team Member
+  onChangeStatus,       // (task, status) => Promise<boolean>
 }) {
   if (!task) return null;
 
@@ -333,6 +379,10 @@ export default function TaskInspector({
           )}
 
           {/* Task Metrics */}
+          {canUpdateProgress && onChangeStatus && !isDropped && task.isActive !== false && (
+            <ProgressControl key={task.id} task={task} onChangeStatus={onChangeStatus} />
+          )}
+
           <div>
             <SectionLabel>Effort and cost</SectionLabel>
             <div style={{
@@ -378,6 +428,34 @@ export default function TaskInspector({
               </div>
             )}
           </div>
+
+          {/* Change requests waiting for a decision (same list every profile sees) */}
+          {pendingRequests.length > 0 && (
+            <div data-tour="task-requests">
+              <SectionLabel>Change requests waiting ({pendingRequests.length})</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pendingRequests.map((r) => (
+                  <div key={r.id} style={{
+                    padding: '10px 12px', borderRadius: 8, display: 'grid', gap: 6,
+                    background: 'color-mix(in srgb, var(--accent-amber) 6%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent-amber) 25%, transparent)',
+                    fontFamily: 'var(--font-sans)',
+                  }}>
+                    <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{r.changeDescription}</strong>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      Asked by {r.requestedBy} ({r.requestedRole}) · +{formatHours(r.addedHours)}, +{r.addedDays} day{r.addedDays === 1 ? '' : 's'}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                      Estimated effect: <strong style={{ color: Number(r.costDelta) > 0 ? 'var(--accent-coral)' : 'var(--accent-emerald)' }}>{formatINRDelta(r.costDelta)}</strong> · {formatDaysDelta(r.daysDelta)}
+                    </span>
+                    {canDecide && onDecideRequest
+                      ? <DecisionBar request={r} onDecide={onDecideRequest} compact />
+                      : <span style={{ fontSize: 11, color: 'var(--accent-amber)', fontWeight: 600 }}>Waiting for the project manager or finance lead.</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Ripple Risk Callout */}
           {downstreamTasks.length > 0 && (

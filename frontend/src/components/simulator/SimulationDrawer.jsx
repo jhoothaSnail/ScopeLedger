@@ -8,9 +8,9 @@ import ImpactStory from './ImpactStory';
 const MAX_HOURS = 100000;
 const MAX_DAYS = 3650;
 const MAX_DESC = 500;
-// Defaults match WorkspacePage's automatic first dry-run, so that result is not "stale".
-const DEFAULT_HOURS = 12;
-const DEFAULT_DAYS = 2;
+// A new change starts empty: nothing is estimated until the user enters the work and asks.
+const DEFAULT_HOURS = 0;
+const DEFAULT_DAYS = 0;
 
 const inr = (v) => Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 const signed = (n, fmt = String) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${fmt(Math.abs(n))}`;
@@ -36,10 +36,14 @@ function validate(hoursStr, daysStr, desc) {
   return { errors, hours, days };
 }
 
-export default function SimulationDrawer({ targetTask, simulationData, onSimulate, onCommit, onClose }) {
+/**
+ * @param {'approve'|'request'|null} action  main button for this person's role:
+ *   approve (Project Manager, Finance Lead), request (Client, Team Member) or none
+ */
+export default function SimulationDrawer({ targetTask, simulationData, onSimulate, onCommit, onRequest, onClose, action = 'approve' }) {
   const [hoursStr, setHoursStr] = useState(String(DEFAULT_HOURS));
   const [daysStr, setDaysStr] = useState(String(DEFAULT_DAYS));
-  const [desc, setDesc] = useState(`Scope modification for ${targetTask?.title ?? 'task'}`);
+  const [desc, setDesc] = useState('');
   const [droppedIds, setDroppedIds] = useState([]);
   const [lastRun, setLastRun] = useState({ hours: DEFAULT_HOURS, days: DEFAULT_DAYS });
   const [isBusy, setIsBusy] = useState(false);
@@ -59,7 +63,15 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
   const { errors, hours, days } = validate(hoursStr, daysStr, desc);
   const inputsValid = Object.keys(errors).length === 0;
   const isStale = !sim || hours !== lastRun.hours || days !== lastRun.days;
-  const canCommit = inputsValid && !isBusy && !isStale && desc.trim().length > 0;
+  const hasChange = hours > 0 || days > 0 || droppedIds.length > 0;
+  const canCommit = inputsValid && !isBusy && !isStale && hasChange && desc.trim().length > 0;
+  const blockedReason = !desc.trim()
+    ? 'Describe the change in the box above'
+    : !hasChange
+      ? 'Enter the extra hours or days this change needs'
+      : isStale
+        ? 'Press “Update estimate” first'
+        : undefined;
 
   const buildPayload = (dropIds) => ({
     targetTaskId: targetTask.id,
@@ -106,7 +118,10 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
   };
 
   const handleCommit = () => {
-    if (canCommit) onCommit(buildPayload(droppedIds));
+    if (!canCommit) return;
+    const payload = buildPayload(droppedIds);
+    if (action === 'request') onRequest?.(payload);
+    else onCommit(payload);
   };
 
   const fin = sim?.financialSummary;
@@ -170,12 +185,19 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
           </div>
         </div>
 
-        <TradeOffSandbox
-          candidates={sim?.candidateTradeOffs || []}
-          selectedDropIds={droppedIds}
-          onToggleDrop={handleToggleDrop}
-          disabled={isBusy || !inputsValid}
-        />
+        {sim ? (
+          <TradeOffSandbox
+            candidates={sim.candidateTradeOffs || []}
+            selectedDropIds={droppedIds}
+            onToggleDrop={handleToggleDrop}
+            disabled={isBusy || !inputsValid}
+          />
+        ) : (
+          <p className="text-xs text-slate-400 p-3 rounded-lg border border-dashed border-slate-700">
+            Describe the change, enter the extra hours and days it needs, then press <strong className="text-slate-200">Update estimate</strong> to
+            see what it costs and which optional extras could balance it.
+          </p>
+        )}
 
         {sim && !isStale && <ImpactStory simulation={sim} targetTitle={targetTask?.title} />}
 
@@ -226,7 +248,7 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
         )}
 
         {isStale && sim && inputsValid && (
-          <p className="text-xs text-amber-400 tabular-nums">You changed the numbers — press “Update estimate” before approving.</p>
+          <p className="text-xs text-amber-400 tabular-nums">You changed the numbers — press “Update estimate” to refresh the cost.</p>
         )}
       </div>
 
@@ -240,16 +262,30 @@ export default function SimulationDrawer({ targetTask, simulationData, onSimulat
         >
           {isBusy ? 'Updating…' : 'Update estimate'}
         </button>
-        <button
-          type="button"
-          onClick={handleCommit}
-          disabled={!canCommit}
-          title={!desc.trim() ? 'Describe the change before approving it' : undefined}
-          className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-xs tabular-nums text-white font-semibold rounded shadow-lg shadow-rose-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Approve change
-        </button>
+        {action && (
+          <button
+            type="button"
+            onClick={handleCommit}
+            disabled={!canCommit}
+            title={blockedReason}
+            className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-xs tabular-nums text-white font-semibold rounded shadow-lg shadow-rose-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {action === 'request' ? 'Send for approval' : 'Approve change'}
+          </button>
+        )}
       </div>
+      {/* Say why the main button is unavailable instead of hiding it in a tooltip. */}
+      {action && blockedReason && !isBusy && (
+        <p role="status" className="pt-2 text-xs font-semibold text-amber-400">
+          To {action === 'request' ? 'send this for approval' : 'approve this change'}: {blockedReason.charAt(0).toLowerCase() + blockedReason.slice(1)}.
+        </p>
+      )}
+      {action === 'request' && (
+        <p className="pt-2 text-[11px] text-slate-400">Your request goes to the project manager and finance lead, who approve or reject it.</p>
+      )}
+      {!action && (
+        <p className="pt-2 text-[11px] text-slate-400">You can explore what a change would cost. A project manager or finance lead approves changes.</p>
+      )}
     </aside>
   );
 }
