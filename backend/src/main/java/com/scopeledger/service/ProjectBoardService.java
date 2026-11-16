@@ -8,6 +8,7 @@ import com.scopeledger.dto.TaskDto;
 import com.scopeledger.entity.DeliverableTask;
 import com.scopeledger.entity.Project;
 import com.scopeledger.entity.TaskDependency;
+import com.scopeledger.exception.CircularDependencyException;
 import com.scopeledger.exception.InvalidRequestException;
 import com.scopeledger.exception.ResourceNotFoundException;
 import com.scopeledger.repository.DeliverableTaskRepository;
@@ -18,8 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -31,6 +35,7 @@ public class ProjectBoardService {
 
     static final Set<String> VALID_STATUSES = Set.of("NOT_STARTED", "IN_PROGRESS", "COMPLETED");
     private static final int MAX_TITLE_LENGTH = 200;
+    private static final int MAX_LINKS = 50;
 
     private final ProjectRepository projectRepo;
     private final DeliverableTaskRepository taskRepo;
@@ -92,6 +97,88 @@ public class ProjectBoardService {
         task.setIsActive(true);
         task.setPosX(req.posX() == null ? 200 : Math.max(0, req.posX()));
         task.setPosY(req.posY() == null ? 200 : Math.max(0, req.posY()));
+
+        List<Long> dependsOn = linkIds(req.dependsOnTaskIds(), "dependsOnTaskIds");
+        List<Long> neededBy = linkIds(req.neededByTaskIds(), "neededByTaskIds");
+        for (Long id : dependsOn) {
+            if (neededBy.contains(id)) {
+                throw new CircularDependencyException("Task " + id
+                        + " cannot both come before and wait for the new task: that would be a circular loop.");
+            }
+        }
+        for (Long id : concat(dependsOn, neededBy)) {
+            requireActiveTaskInProject(projectId, id);
+        }
+
+        DeliverableTask saved = taskRepo.save(task);
+        // Each link is checked against the edges added before it, so a dependent that is already
+        // upstream of a chosen prerequisite is rejected and the whole create rolls back.
+        List<TaskDependency> edges = new ArrayList<>(depRepo.findByProjectId(projectId));
+        for (Long prerequisiteId : dependsOn) {
+            edges.add(link(projectId, prerequisiteId, saved.getId(), edges));
+        }
+        for (Long dependentId : neededBy) {
+            edges.add(link(projectId, saved.getId(), dependentId, edges));
+        }
+        return toDto(saved);
+    }
+
+    private TaskDependency link(Long projectId, Long prerequisiteId, Long dependentId, List<TaskDependency> edges) {
+        cycleDetection.assertNoCycle(prerequisiteId, dependentId, edges);
+        return depRepo.save(new TaskDependency(null, projectId, prerequisiteId, dependentId));
+    }
+
+    /** De-duplicated, null-free, bounded list of task ids (empty when absent). */
+    private static List<Long> linkIds(List<Long> ids, String field) {
+        if (ids == null) {
+            return List.of();
+        }
+        if (ids.size() > MAX_LINKS) {
+            throw new InvalidRequestException(field + " may list at most " + MAX_LINKS + " tasks.");
+        }
+        if (ids.stream().anyMatch(Objects::isNull)) {
+            throw new InvalidRequestException(field + " must not contain empty ids.");
+        }
+        return List.copyOf(new LinkedHashSet<>(ids));
+    }
+
+    private static List<Long> concat(List<Long> a, List<Long> b) {
+        List<Long> all = new ArrayList<>(a);
+        all.addAll(b);
+        return all;
+    }
+
+    private void requireActiveTaskInProject(Long projectId, Long taskId) {
+        DeliverableTask t = taskRepo.findById(taskId)
+                .filter(x -> projectId.equals(x.getProjectId()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Task " + taskId + " not found in project " + projectId + "."));
+        if (!Boolean.TRUE.equals(t.getIsActive())) {
+            throw new InvalidRequestException("Task " + taskId + " (" + t.getTitle()
+                    + ") was removed from scope, so nothing can be linked to it.");
+        }
+    }
+
+    /**
+     * Records progress on a task. Progress drives the rework estimate (finished and in-progress work
+     * must be redone when something upstream changes), so it is kept honest per task.
+     */
+    @Transactional
+    public TaskDto updateTaskStatus(Long projectId, Long taskId, String rawStatus) {
+        requireProject(projectId);
+        String status = rawStatus == null ? "" : rawStatus.trim().toUpperCase();
+        if (!VALID_STATUSES.contains(status)) {
+            throw new InvalidRequestException("Status must be one of " + VALID_STATUSES + ".");
+        }
+        DeliverableTask task = taskRepo.findById(taskId)
+                .filter(t -> projectId.equals(t.getProjectId()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Task " + taskId + " not found in project " + projectId + "."));
+        if (!Boolean.TRUE.equals(task.getIsActive())) {
+            throw new InvalidRequestException("Task " + taskId + " (" + task.getTitle()
+                    + ") was removed from scope, so its progress can no longer change.");
+        }
+        task.setStatus(status);
         return toDto(taskRepo.save(task));
     }
 

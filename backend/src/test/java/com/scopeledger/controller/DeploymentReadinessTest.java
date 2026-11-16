@@ -5,7 +5,9 @@ import com.scopeledger.config.DemoDataSeeder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.scopeledger.support.ProjectManagerHeaders;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = ScopeLedgerApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(ProjectManagerHeaders.class)
 class DeploymentReadinessTest {
 
     @Autowired
@@ -70,7 +73,7 @@ class DeploymentReadinessTest {
         assertFalse(seeder.seedIfEmpty());      // data present: must not re-seed
 
         mvc.perform(get("/api/v1/projects/1/board"))
-                .andExpect(jsonPath("$.baselineBudget").value(104000.00))
+                .andExpect(jsonPath("$.baselineBudget").value(239600.00))
                 .andExpect(jsonPath("$.tasks", hasSize(8)))
                 .andExpect(jsonPath("$.tasks[1].estimatedHours").value(36.0))
                 .andExpect(jsonPath("$.tasks[3].isActive").value(false));
@@ -104,7 +107,7 @@ class DeploymentReadinessTest {
         commitSampleChange();
         mvc.perform(post("/api/v1/demo/reset")).andExpect(status().isOk());
         mvc.perform(get("/api/v1/projects/1/board"))
-                .andExpect(jsonPath("$.baselineBudget").value(100000.00))
+                .andExpect(jsonPath("$.baselineBudget").value(220000.00))
                 .andExpect(jsonPath("$.tasks[3].isActive").value(true));
         mvc.perform(get("/api/v1/projects/1/change-orders")).andExpect(jsonPath("$", hasSize(0)));
     }

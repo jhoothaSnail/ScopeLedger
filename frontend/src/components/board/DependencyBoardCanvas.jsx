@@ -1,10 +1,15 @@
 // frontend/src/components/board/DependencyBoardCanvas.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { IMPACT, STATUS } from '../../content/glossary';
 import TaskCard from './TaskCard';
 
 const CARD_WIDTH = 260;
 const CARD_HEIGHT = 120;
+// Space kept clear around the fitted board: legend and tip at the top, zoom toolbar at the bottom.
+const FIT_PAD = { top: 64, right: 24, bottom: 72, left: 24 };
+const FIT_CARD_HEIGHT = 175; // tallest card (with request / impact rows)
+const MIN_SCALE = 0.4;
+const MAX_SCALE = 2.0;
 
 export default function DependencyBoardCanvas({
   tasks = [],
@@ -12,6 +17,7 @@ export default function DependencyBoardCanvas({
   selectedTaskId,
   simulationData,
   droppedTaskIds = [],
+  pendingByTask = {}, // taskId -> number of change requests waiting for a decision
   onSelectTask
 }) {
   const [scale, setScale] = useState(1);
@@ -61,12 +67,38 @@ export default function DependencyBoardCanvas({
   };
 
   // Zoom controls
-  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.15, 2.0));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.15, 0.5));
-  const handleResetView = () => {
-    setScale(1);
-    setPosition({ x: 40, y: 40 });
-  };
+  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.15, MAX_SCALE));
+  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.15, MIN_SCALE));
+
+  // Scale and centre so every task is on screen (never zooms in past 100%).
+  const fitToScreen = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || tasks.length === 0) return;
+    const { clientWidth: vw, clientHeight: vh } = viewport;
+    if (!vw || !vh) return;
+    const xs = tasks.map(t => t.posX || 0);
+    const ys = tasks.map(t => t.posY || 0);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const boardW = Math.max(...xs) + CARD_WIDTH - minX;
+    const boardH = Math.max(...ys) + FIT_CARD_HEIGHT - minY;
+    const availW = vw - FIT_PAD.left - FIT_PAD.right;
+    const availH = vh - FIT_PAD.top - FIT_PAD.bottom;
+    const next = Math.max(MIN_SCALE, Math.min(1, availW / boardW, availH / boardH));
+    setScale(next);
+    setPosition({
+      x: FIT_PAD.left + Math.max(0, (availW - boardW * next) / 2) - minX * next,
+      y: FIT_PAD.top + Math.max(0, (availH - boardH * next) / 2) - minY * next,
+    });
+  }, [tasks]);
+
+  // Fit once when the tasks first arrive, so the whole plan is visible without dragging.
+  const hasFitted = useRef(false);
+  useLayoutEffect(() => {
+    if (hasFitted.current || tasks.length === 0) return;
+    hasFitted.current = true;
+    fitToScreen();
+  }, [tasks, fitToScreen]);
 
   return (
     <div
@@ -98,9 +130,9 @@ export default function DependencyBoardCanvas({
         </button>
         <div className="h-4 w-px bg-slate-800 mx-1" />
         <button
-          onClick={handleResetView}
+          onClick={fitToScreen}
           className="px-2 h-7 rounded hover:bg-slate-800 text-[11px] font-mono text-slate-400 hover:text-slate-200 transition-colors"
-          title="Fit the board back to the screen"
+          title="Show every task on screen"
         >
           Fit to screen
         </button>
@@ -220,6 +252,7 @@ export default function DependencyBoardCanvas({
             isSelected={selectedTaskId === task.id}
             impactData={impactedMap.get(task.id)}
             isDropped={droppedTaskIds.includes(task.id)}
+            pendingCount={pendingByTask[task.id] || 0}
             onSelectTask={onSelectTask}
           />
         ))}

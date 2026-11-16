@@ -6,7 +6,8 @@ export const ROLES = ['Project Manager', 'Client', 'Finance Lead', 'Team Member'
 export const DEMO_PROFILES = [
   { name: 'Priya Sharma', email: 'priya@scopeledger.demo', role: 'Project Manager', blurb: 'Plans the work and approves changes' },
   { name: 'Rahul Mehta', email: 'rahul@acmeretail.demo', role: 'Client', blurb: 'Asks for changes and reviews their cost' },
-  { name: 'Ananya Iyer', email: 'ananya@scopeledger.demo', role: 'Finance Lead', blurb: 'Keeps an eye on budget and timeline' },
+  { name: 'Ananya Iyer', email: 'ananya@scopeledger.demo', role: 'Finance Lead', blurb: 'Watches the budget and approves changes' },
+  { name: 'Arjun Nair', email: 'arjun@scopeledger.demo', role: 'Team Member', blurb: 'Updates task progress and flags extra work' },
 ];
 
 // Stable colour per person (token-based so it reads well in both themes).

@@ -8,6 +8,7 @@ export default function TaskCard({
   isSelected,
   impactData,       // { impactType: "DIRECT_CHANGE" | "DOWNSTREAM_REWORK", extraHours, extraCost, delayDays }
   isDropped,        // boolean (task toggled off in TradeOffSandbox)
+  pendingCount = 0, // change requests for this task still waiting for a decision (shared, from the server)
   onSelectTask
 }) {
   const isRemoved = task.isActive === false; // approved earlier and taken out of scope (saved on the server)
@@ -56,7 +57,7 @@ export default function TaskCard({
       title={isRemoved ? 'This task was removed from the project scope and can no longer be changed.' : undefined}
       onKeyDown={handleKeyDown}
       aria-pressed={isSelected}
-      aria-label={`${task.title}. ${statusLabel(task.status)}${task.isOptional ? ', optional' : ''}.${impactData && !isDropped ? ` ${impactLabel.label}.` : ''}${isDropped || isRemoved ? ' Removed from scope.' : ' Press Enter for details.'}`}
+      aria-label={`${task.title}. ${statusLabel(task.status)}${task.isOptional ? ', optional' : ''}.${impactData && !isDropped ? ` ${impactLabel.label}.` : ''}${pendingCount > 0 ? ` ${pendingCount} change request${pendingCount === 1 ? '' : 's'} waiting for approval.` : ''}${isDropped || isRemoved ? ' Removed from scope.' : ' Press Enter for details.'}`}
       style={{
         left: `${task.posX || 0}px`,
         top: `${task.posY || 0}px`,
@@ -112,6 +113,15 @@ export default function TaskCard({
           <span className={`${isDirectChange ? 'text-rose-400' : 'text-amber-400'} font-semibold`}>
             +{formatHours(impactData.extraHours)} · +{formatINR(impactData.extraCost)}
           </span>
+        </div>
+      )}
+
+      {/* Requests from anyone (client, PM) waiting for the project manager or finance lead */}
+      {pendingCount > 0 && !isRemoved && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30"
+          title="Someone asked for a change to this task. A project manager or finance lead needs to approve or reject it.">
+          <span aria-hidden="true">⏳</span>
+          {pendingCount === 1 ? 'Change request waiting' : `${pendingCount} change requests waiting`}
         </div>
       )}
 

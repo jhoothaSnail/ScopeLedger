@@ -1,6 +1,6 @@
 // frontend/src/pages/WorkspacePage.jsx
 // Main workspace orchestrator: board canvas + task inspector + simulation drawer.
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import TopNavBar from '../components/layout/TopNavBar';
 import MetricsBanner from '../components/layout/MetricsBanner';
 import DependencyBoardCanvas from '../components/board/DependencyBoardCanvas';
@@ -12,11 +12,15 @@ import {
   fetchProjectBoard,
   createDeliverableTask,
   createTaskDependency,
+  updateTaskStatus,
   resetDemoData,
   fetchChangeOrders,
   isUsingFallback
 } from '../services/boardApi';
 import { simulateChangeOrder, commitChangeOrder } from '../services/changeOrderApi';
+import { submitChangeRequest, fetchChangeRequests, approveChangeRequest, rejectChangeRequest } from '../services/requestApi';
+import { useAuth } from '../auth/authContext';
+import { can, changeAction } from '../auth/permissions';
 
 // ─── Skeleton Loader ─────────────────────────────────────────────────────────
 function BoardSkeleton() {
@@ -161,7 +165,7 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 26%, transparent), color-mix(in srgb, var(--accent-teal) 20%, transparent))'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 18%, transparent), color-mix(in srgb, var(--accent-teal) 12%, transparent))'; }}
           >
-            Commit Change
+            Approve change
           </button>
         </div>
       </div>
@@ -170,7 +174,9 @@ function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
 }
 
 // ─── Main Page Component ──────────────────────────────────────────────────────
-export default function WorkspacePage({ activePage, onNavigate, onProjectNameChange, onStartTour }) {
+export default function WorkspacePage({ activePage, onNavigate, onProjectNameChange, onStartTour, onRequestsChanged }) {
+  const { user } = useAuth();
+  const action = changeAction(user);
   const [board, setBoard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -189,6 +195,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [changeOrders, setChangeOrders] = useState([]);
   const [droppedTaskIds, setDroppedTaskIds] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]); // shared on the server, same for every profile
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, payload: null });
@@ -200,14 +207,18 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   };
 
   // Load board
+  // Skeleton only on the first load; later refreshes keep the board (and its zoom/pan) on screen.
+  const hasLoadedBoard = useRef(false);
   const loadBoardData = useCallback(async () => {
-    setIsLoading(true);
+    if (!hasLoadedBoard.current) setIsLoading(true);
     setErrorMsg(null);
     try {
       const data = await fetchProjectBoard(1);
+      hasLoadedBoard.current = true;
       setBoard(data);
       setIsOffline(isUsingFallback());
       if (data?.name) onProjectNameChange?.(data.name);
+      return data;
     } catch (err) {
       setErrorMsg('Failed to connect to backend: ' + err.message);
     } finally {
@@ -218,6 +229,28 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   useEffect(() => {
     loadBoardData();
   }, [loadBoardData]);
+
+  // Pending change requests (from any profile). Refreshed on load, after every action and every
+  // 20 s, so a request sent from another account shows up on the board without a reload.
+  const loadRequests = useCallback(async () => {
+    try {
+      const list = await fetchChangeRequests(1);
+      setPendingRequests(Array.isArray(list) ? list.filter((r) => r.status === 'PENDING') : []);
+    } catch {
+      setPendingRequests([]); // server unreachable: show none rather than stale ones
+    }
+  }, []);
+  useEffect(() => {
+    loadRequests();
+    const timer = setInterval(loadRequests, 20000);
+    return () => clearInterval(timer);
+  }, [loadRequests]);
+
+  const pendingByTask = useMemo(() => {
+    const counts = {};
+    for (const r of pendingRequests) counts[r.targetTaskId] = (counts[r.targetTaskId] || 0) + 1;
+    return counts;
+  }, [pendingRequests]);
 
   // Open audit log
   const handleOpenAudit = useCallback(async () => {
@@ -247,22 +280,64 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   };
 
   // Inspector CTA → open simulation drawer
-  const handleOpenSimulation = async () => {
+  // Opens empty: nothing is estimated until the user enters the change and asks for it.
+  const handleOpenSimulation = () => {
     if (!selectedTask) return;
+    setSimulationData(null);
+    setDroppedTaskIds([]);
     setSimulationDrawerOpen(true);
+  };
 
-    // Auto-trigger initial dry-run
+  // Client: send the explored change to the approvers instead of applying it.
+  const handleSubmitRequest = async (payload) => {
     try {
-      const sim = await simulateChangeOrder(1, {
-        targetTaskId: selectedTask.id,
-        changeDescription: `Scope modification for ${selectedTask.title}`,
-        addedHours: 12,
-        addedDays: 2,
-        droppedOptionalTaskIds: []
-      });
-      setSimulationData(sim);
+      await submitChangeRequest(1, payload);
+      showToast('Request sent. The project manager and finance lead will see it on the board and under Change requests.', 'success');
+      await loadRequests();
+      setSimulationData(null);
+      setDroppedTaskIds([]);
+      setSimulationDrawerOpen(false);
+      setInspectorOpen(true);
+      onRequestsChanged?.();
     } catch (err) {
-      console.warn('Initial simulation failed:', err.message);
+      showToast('Could not send the request: ' + err.message, 'error');
+    }
+  };
+
+  // Approver deciding a request from the task inspector (same rules as the Change requests page).
+  const handleDecideRequest = async (request, mode, note) => {
+    try {
+      if (mode === 'approve') await approveChangeRequest(1, request.id, note);
+      else await rejectChangeRequest(1, request.id, note);
+      showToast(mode === 'approve' ? 'Request approved. The plan and budget are updated.' : 'Request rejected.', 'success');
+      onRequestsChanged?.();
+      await loadRequests();
+      if (mode === 'approve') {
+        // Keep the inspector on the same task, now with its updated hours and cost.
+        const fresh = await loadBoardData();
+        const updated = fresh?.tasks?.find((t) => t.id === request.targetTaskId);
+        if (updated) setSelectedTask(updated);
+      }
+      return true;
+    } catch (err) {
+      showToast('Could not save the decision: ' + err.message, 'error');
+      await loadRequests(); // someone else may have decided it already
+      return false;
+    }
+  };
+
+  // Team member / project manager: record progress on the selected task.
+  const handleChangeStatus = async (task, status) => {
+    try {
+      await updateTaskStatus(1, task.id, status);
+      const fresh = await loadBoardData();
+      const updated = fresh?.tasks?.find((t) => t.id === task.id);
+      if (updated) setSelectedTask(updated);
+      showToast(`“${task.title}” marked as ${status === 'COMPLETED' ? 'done' : status === 'IN_PROGRESS' ? 'in progress' : 'not started'}.`, 'success');
+      return true;
+    } catch (err) {
+      showToast('Could not update progress: ' + err.message, 'error');
+      return false;
     }
   };
 
@@ -288,6 +363,8 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
     try {
       await commitChangeOrder(1, payload);
       showToast('Change approved and saved to the change history.', 'success');
+      onRequestsChanged?.();
+      loadRequests();
       setSelectedTask(null);
       setSimulationData(null);
       setDroppedTaskIds([]);
@@ -322,7 +399,9 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       setInspectorOpen(false);
       setSimulationDrawerOpen(false);
       await loadBoardData();
-      showToast('Demo project data reset to initial baseline state.', 'success');
+      await loadRequests();
+      onRequestsChanged?.();
+      showToast('Sample data restored. Earlier requests and approvals were cleared.', 'success');
     } catch (err) {
       showToast('Reset failed: ' + err.message, 'error');
     }
@@ -337,14 +416,15 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
   // Create task
   const handleCreateTask = async (taskData) => {
     await createDeliverableTask(1, taskData);
-    showToast(`Task "${taskData.title}" created.`, 'success');
+    const links = (taskData.dependsOnTaskIds?.length || 0) + (taskData.neededByTaskIds?.length || 0);
+    showToast(`Task "${taskData.title}" added${links ? ` and linked to ${links} task${links === 1 ? '' : 's'}` : ''}.`, 'success');
     await loadBoardData();
   };
 
   // Create dependency
   const handleCreateDependency = async (depData) => {
     await createTaskDependency(1, depData);
-    showToast('Dependency edge connected.', 'success');
+    showToast('Tasks linked.', 'success');
     await loadBoardData();
   };
 
@@ -375,9 +455,8 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       {/* Top Nav */}
       <TopNavBar
         projectName={board?.name || 'ScopeLedger Project'}
-        onResetDemo={handleResetDemo}
-        onOpenAuditLog={handleOpenAudit}
-        onOpenAddModal={() => setIsAddModalOpen(true)}
+        onResetDemo={can(user, 'reset') ? handleResetDemo : undefined}
+        onOpenAddModal={can(user, 'editPlan') ? () => setIsAddModalOpen(true) : undefined}
         isLiveApi={!errorMsg && !isOffline}
         onOpenHelp={onStartTour}
       />
@@ -455,6 +534,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
               selectedTaskId={selectedTask?.id}
               simulationData={simulationData}
               droppedTaskIds={droppedTaskIds}
+              pendingByTask={pendingByTask}
               onSelectTask={handleSelectTask}
             />
           )}
@@ -470,6 +550,11 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
             isDropped={selectedTaskIsDropped}
             onOpenSimulation={handleOpenSimulation}
             onClose={handleCloseInspector}
+            pendingRequests={pendingRequests.filter((r) => r.targetTaskId === selectedTask.id)}
+            canDecide={can(user, 'approve')}
+            onDecideRequest={handleDecideRequest}
+            canUpdateProgress={can(user, 'progress')}
+            onChangeStatus={handleChangeStatus}
           />
         )}
 
@@ -480,6 +565,8 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
             simulationData={simulationData}
             onSimulate={handleSimulate}
             onCommit={handleCommitRequest}
+            onRequest={handleSubmitRequest}
+            action={action}
             onClose={() => {
               setSimulationDrawerOpen(false);
               setInspectorOpen(true);
@@ -504,6 +591,7 @@ export default function WorkspacePage({ activePage, onNavigate, onProjectNameCha
       <AddTaskDependencyModal
         isOpen={isAddModalOpen}
         tasks={board?.tasks || []}
+        dependencies={board?.dependencies || []}
         onClose={() => setIsAddModalOpen(false)}
         onCreateTask={handleCreateTask}
         onCreateDependency={handleCreateDependency}

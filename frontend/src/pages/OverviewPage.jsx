@@ -1,11 +1,14 @@
 // frontend/src/pages/OverviewPage.jsx
-// Home after sign-in: project health in plain words, recent approved changes, quick actions.
+// Home after sign-in: project health in plain words, change requests for this role, recent changes, quick actions.
 import React, { useEffect, useMemo, useState } from 'react';
 import { fetchChangeOrders, fetchProjectBoard, isUsingFallback } from '../services/boardApi';
 import { formatDays, formatINR, formatINRDelta, formatDaysDelta } from '../content/format';
 import { METRICS } from '../content/glossary';
 import InfoTip from '../components/common/InfoTip';
 import ThemeToggle from '../components/common/ThemeToggle';
+import HelpButton from '../components/common/HelpButton';
+import { fetchChangeRequests } from '../services/requestApi';
+import { can } from '../auth/permissions';
 
 const PROJECT_ID = 1;
 
@@ -47,9 +50,59 @@ function ActionCard({ icon, title, text, onClick, tour }) {
   );
 }
 
+function RequestsSummary({ user, requests, isLoading, isOffline, onOpen }) {
+  const pending = requests.filter((r) => r.status === 'PENDING');
+  const approver = can(user, 'approve');
+  const mine = requests.filter((r) => r.requestedBy === user?.name);
+  const list = approver ? pending : can(user, 'request') ? mine : pending;
+  const title = approver ? 'Requests waiting for you' : can(user, 'request') ? 'Your change requests' : 'Change requests';
+  const empty = approver
+    ? 'Nothing is waiting for your decision.'
+    : can(user, 'request')
+      ? 'You haven’t asked for any changes yet. Open the project board, explore a change, then send it for approval.'
+      : 'No changes are waiting for approval.';
+  const STATUS = { PENDING: ['Waiting', 'var(--accent-amber)'], APPROVED: ['Approved', 'var(--accent-emerald)'], REJECTED: ['Rejected', 'var(--accent-coral)'] };
+
+  return (
+    <>
+      <h2 className="sl-section-title">{title}{approver && pending.length > 0 ? ` (${pending.length})` : ''}</h2>
+      <div className="sl-card" data-tour="overview-requests" style={{ padding: 4 }}>
+        {isLoading ? (
+          <div className="skeleton" style={{ height: 64, margin: 12 }} />
+        ) : isOffline ? (
+          <p style={{ padding: '18px 16px', color: 'var(--text-muted)' }}>Change requests need the server, which isn’t reachable right now.</p>
+        ) : !list.length ? (
+          <p style={{ padding: '18px 16px', color: 'var(--text-muted)' }}>{empty}</p>
+        ) : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {list.slice(0, 3).map((r, i) => {
+              const [label, color] = STATUS[r.status] || STATUS.PENDING;
+              return (
+                <li key={r.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', padding: '12px 16px',
+                  borderTop: i ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <span style={{ flex: '1 1 240px', minWidth: 0 }}>
+                    <strong style={{ display: 'block', color: 'var(--text-primary)' }}>{r.changeDescription}</strong>
+                    <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{r.targetTaskTitle} · asked by {r.requestedBy}</span>
+                  </span>
+                  <span style={{ fontWeight: 700, color: Number(r.costDelta) > 0 ? 'var(--accent-coral)' : 'var(--accent-emerald)' }}>{formatINRDelta(r.costDelta)}</span>
+                  <span className="sl-chip" style={{ color }}><span className="sl-dot" style={{ background: color }} /> {label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div style={{ padding: '8px 12px 12px' }}>
+          <button type="button" className="sl-btn" onClick={onOpen}>{approver ? 'Review requests' : 'See all requests'}</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function OverviewPage({ user, onNavigate, onProjectNameChange, onStartTour }) {
   const [board, setBoard] = useState(null);
   const [changes, setChanges] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -63,6 +116,12 @@ export default function OverviewPage({ user, onNavigate, onProjectNameChange, on
         setChanges(Array.isArray(logs) ? logs : []);
         setIsOffline(isUsingFallback());
         if (b?.name) onProjectNameChange?.(b.name);
+        try {
+          const reqs = await fetchChangeRequests(PROJECT_ID);
+          if (!cancelled) setRequests(Array.isArray(reqs) ? reqs : []);
+        } catch {
+          /* server unreachable: the requests card explains it */
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -112,6 +171,7 @@ export default function OverviewPage({ user, onNavigate, onProjectNameChange, on
             </span>
           )}
           <ThemeToggle />
+          <HelpButton onClick={onStartTour} />
         </div>
       </header>
 
@@ -150,12 +210,10 @@ export default function OverviewPage({ user, onNavigate, onProjectNameChange, on
         <ActionCard onClick={() => onNavigate?.('changeorders')} title="Review approved changes"
           text="See every change that was agreed, what it cost and what was removed."
           icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        {onStartTour && (
-          <ActionCard onClick={onStartTour} title="Show me around"
-            text="A two-minute guided tour of how ScopeLedger works."
-            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M9.5 9a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01" /></svg>} />
-        )}
       </div>
+
+      {/* Change requests, framed for this person's role */}
+      <RequestsSummary user={user} requests={requests} isLoading={isLoading} isOffline={isOffline} onOpen={() => onNavigate?.('requests')} />
 
       {/* Recent changes */}
       <h2 className="sl-section-title">Recently approved changes</h2>
@@ -193,7 +251,7 @@ export default function OverviewPage({ user, onNavigate, onProjectNameChange, on
         {[
           ['Pick a task', 'Open the project board and click the task the client wants to change.'],
           ['See the ripple', 'Enter the extra hours and days. Tasks that depend on it light up, and you see the full cost.'],
-          ['Balance and approve', 'Remove optional extras to win back money or time, then approve the change. It’s saved to the history.'],
+          ['Balance and decide', 'Remove optional extras to win back money or time. Clients send the change for approval; the project manager or finance lead approves it, and it’s saved to the history.'],
         ].map(([title, text], i) => (
           <li key={title} className="sl-card" style={{ padding: '16px 18px', display: 'flex', gap: 12 }}>
             <span className="sl-avatar" aria-hidden="true" style={{ width: 30, height: 30, background: 'var(--accent-solid)' }}>{i + 1}</span>

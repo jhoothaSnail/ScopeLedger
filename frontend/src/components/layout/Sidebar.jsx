@@ -1,5 +1,5 @@
 // frontend/src/components/layout/Sidebar.jsx
-// App navigation + signed-in user's profile menu (theme, help tour, sign out).
+// App navigation (with a pending-requests badge) + signed-in user's profile menu (theme, sign out).
 import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../theme/themeContext';
 
@@ -16,6 +16,12 @@ const ICONS = {
       <path d="M6.5 10 L13.5 5.5M6.5 10 L13.5 14.5" strokeLinecap="round" />
     </svg>
   ),
+  requests: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+      <path d="M3 4.5h14v9H8l-4 3v-3H3z" strokeLinejoin="round" />
+      <path d="M7 8h6M7 10.5h4" strokeLinecap="round" />
+    </svg>
+  ),
   changeorders: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
       <path d="M6 2h8l4 4v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" strokeLinejoin="round" />
@@ -27,10 +33,11 @@ const ICONS = {
 const NAV_ITEMS = [
   { key: 'overview', label: 'Overview', hint: 'Project health at a glance' },
   { key: 'board', label: 'Project board', hint: 'Tasks and how they connect' },
+  { key: 'requests', label: 'Change requests', hint: 'Changes waiting for approval' },
   { key: 'changeorders', label: 'Change history', hint: 'Every approved change' },
 ];
 
-function ProfileMenu({ user, isCollapsed, onSignOut, onStartTour }) {
+function ProfileMenu({ user, isCollapsed, onSignOut }) {
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
@@ -60,12 +67,6 @@ function ProfileMenu({ user, isCollapsed, onSignOut, onStartTour }) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" /></svg>
             {theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           </button>
-          {onStartTour && (
-            <button type="button" role="menuitem" className="sl-menu-item" onClick={choose(onStartTour)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M9.5 9a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01" /></svg>
-              Show me around
-            </button>
-          )}
           <div className="sl-menu-sep" />
           <button type="button" role="menuitem" className="sl-menu-item" onClick={choose(onSignOut)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17l5-5-5-5M20 12H9M12 21H5a2 2 0 01-2-2V5a2 2 0 012-2h7" /></svg>
@@ -94,7 +95,7 @@ function ProfileMenu({ user, isCollapsed, onSignOut, onStartTour }) {
   );
 }
 
-export default function Sidebar({ activePage = 'overview', onNavigate, projectName, isCollapsed, onToggleCollapse, user, onSignOut, onStartTour, navItems = NAV_ITEMS }) {
+export default function Sidebar({ activePage = 'overview', onNavigate, projectName, isCollapsed, onToggleCollapse, user, onSignOut, pendingCount = 0, navItems = NAV_ITEMS }) {
   return (
     <aside
       aria-label="Main navigation"
@@ -143,7 +144,14 @@ export default function Sidebar({ activePage = 'overview', onNavigate, projectNa
             style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
           >
             {ICONS[item.key]}
-            {!isCollapsed && <span>{item.label}</span>}
+            {!isCollapsed && <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>}
+            {item.key === 'requests' && pendingCount > 0 && (
+              <span aria-label={`${pendingCount} waiting for approval`} title={`${pendingCount} waiting for approval`}
+                style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 10, display: 'inline-grid', placeItems: 'center',
+                  fontSize: 11, fontWeight: 700, background: 'var(--accent-solid)', color: 'var(--text-on-accent)' }}>
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -164,7 +172,7 @@ export default function Sidebar({ activePage = 'overview', onNavigate, projectNa
           </svg>
           {!isCollapsed && 'Collapse'}
         </button>
-        {user && <ProfileMenu user={user} isCollapsed={isCollapsed} onSignOut={onSignOut} onStartTour={onStartTour} />}
+        {user && <ProfileMenu user={user} isCollapsed={isCollapsed} onSignOut={onSignOut} />}
       </div>
     </aside>
   );

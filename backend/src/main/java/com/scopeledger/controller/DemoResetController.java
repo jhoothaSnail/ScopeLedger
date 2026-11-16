@@ -1,11 +1,14 @@
 package com.scopeledger.controller;
 
 import com.scopeledger.exception.ApiException;
+import com.scopeledger.security.Actor;
+import com.scopeledger.security.Permission;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,7 +34,8 @@ public class DemoResetController {
     }
 
     @PostMapping("/reset")
-    public Map<String, String> reset() {
+    public Map<String, String> reset(@RequestHeader(value = Actor.ROLE_HEADER, required = false) String role) {
+        Actor.from(role, null).require(Permission.RESET_DEMO);
         if (!resetEnabled) {
             throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_RESET_DISABLED", "Demo reset is disabled on this server.");
         }

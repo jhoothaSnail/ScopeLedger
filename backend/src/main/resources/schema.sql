@@ -56,3 +56,30 @@ CREATE TABLE IF NOT EXISTS change_order_logs (
     PRIMARY KEY (id),
     CONSTRAINT fk_logs_project FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
 );
+
+-- Change requests raised by clients (or the project manager) and decided by an approver.
+-- Pending requests are shared by every user; approving one runs the normal change-order commit.
+CREATE TABLE IF NOT EXISTS change_requests (
+    id                   BIGINT         NOT NULL AUTO_INCREMENT,
+    project_id           BIGINT         NOT NULL,
+    target_task_id       BIGINT         NOT NULL,
+    change_description   VARCHAR(500)   NOT NULL,
+    added_hours          DECIMAL(10, 2) NOT NULL,
+    added_days           INT            NOT NULL,
+    dropped_tasks_json   TEXT,
+    cost_delta           DECIMAL(14, 2) NOT NULL,
+    days_delta           INT            NOT NULL,
+    status               VARCHAR(20)    NOT NULL DEFAULT 'PENDING',
+    requested_by         VARCHAR(80)    NOT NULL,
+    requested_role       VARCHAR(30)    NOT NULL,
+    requested_at         DATETIME       NOT NULL,
+    decided_by           VARCHAR(80),
+    decided_role         VARCHAR(30),
+    decided_at           DATETIME,
+    decision_note        VARCHAR(500),
+    version              INT            NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_requests_project FOREIGN KEY (project_id)     REFERENCES projects (id)          ON DELETE CASCADE,
+    CONSTRAINT fk_requests_task    FOREIGN KEY (target_task_id) REFERENCES deliverable_tasks (id) ON DELETE CASCADE,
+    CONSTRAINT chk_requests_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))
+);

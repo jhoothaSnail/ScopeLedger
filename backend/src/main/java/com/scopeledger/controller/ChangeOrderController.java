@@ -4,12 +4,15 @@ import com.scopeledger.dto.ChangeOrderLogDto;
 import com.scopeledger.dto.ProjectBoardResponseDto;
 import com.scopeledger.dto.SimulationRequestDto;
 import com.scopeledger.dto.SimulationResponseDto;
+import com.scopeledger.security.Actor;
+import com.scopeledger.security.Permission;
 import com.scopeledger.service.ProjectBoardService;
 import com.scopeledger.service.RippleSimulationService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,9 +40,11 @@ public class ChangeOrderController {
         return simulationService.simulateChange(projectId, request);
     }
 
-    /** Contract C: applies the change order atomically, then returns the refreshed board. */
+    /** Contract C: applies the change order atomically, then returns the refreshed board. Approvers only. */
     @PostMapping("/commit")
-    public ProjectBoardResponseDto commit(@PathVariable Long projectId, @RequestBody SimulationRequestDto request) {
+    public ProjectBoardResponseDto commit(@PathVariable Long projectId, @RequestBody SimulationRequestDto request,
+                                          @RequestHeader(value = Actor.ROLE_HEADER, required = false) String role) {
+        Actor.from(role, null).require(Permission.APPROVE_CHANGES);
         simulationService.commitChange(projectId, request);
         return boardService.getBoard(projectId);
     }

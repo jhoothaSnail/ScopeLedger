@@ -4,6 +4,7 @@ import com.scopeledger.dto.ApiErrorDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -49,6 +50,11 @@ public class GlobalExceptionHandler {
     }
 
     /** Safety net for races that slip past service checks (e.g. concurrent duplicate links). */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorDto> handleConcurrentUpdate(OptimisticLockingFailureException ex) {
+        return body(HttpStatus.CONFLICT, "CONCURRENT_UPDATE", "Someone else updated this at the same moment. Refresh and try again.");
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorDto> handleIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());

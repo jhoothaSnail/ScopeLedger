@@ -5,9 +5,9 @@ import { MOCK_PROJECT_BOARD } from '../mocks/mockProjectData';
 
 // Offline mock trade-off candidates (optional, NOT_STARTED leaf tasks in the 8-task seed).
 const MOCK_CANDIDATES = [
-  { taskId: 104, title: 'PDF Invoice Template', savedCost: 16000.0, savedDays: 3 },
-  { taskId: 106, title: 'Admin Analytics Dashboard', savedCost: 20000.0, savedDays: 3 },
-  { taskId: 107, title: 'Email Notification Service', savedCost: 12000.0, savedDays: 2 },
+  { taskId: 104, title: 'PDF Invoice Template', savedCost: 12800.0, savedDays: 3 },
+  { taskId: 106, title: 'Admin Analytics Dashboard', savedCost: 18000.0, savedDays: 3 },
+  { taskId: 107, title: 'Email Notification Service', savedCost: 8400.0, savedDays: 2 },
 ].map((c) => ({ ...c, rationale: 'Optional task in NOT_STARTED state with 0 active downstream dependencies.' }));
 
 /**
@@ -20,13 +20,14 @@ function buildMockSimulation(payload) {
   const days = Number(payload.addedDays) || 0;
   const hasChange = hours > 0 || days > 0;
   const rework = hasChange && payload.targetTaskId !== 103
-    ? [{ taskId: 103, title: 'Order & Checkout Service', impactType: 'DOWNSTREAM_REWORK', extraHours: 8.0, extraCost: 8000.0, delayDays: 1 }]
+    ? [{ taskId: 103, title: 'Order & Checkout Service', impactType: 'DOWNSTREAM_REWORK', extraHours: 8.0, extraCost: 14400.0, delayDays: 1 }]
     : [];
   const candidates = MOCK_CANDIDATES.filter((c) => c.taskId !== payload.targetTaskId);
   const requested = new Set(payload.droppedOptionalTaskIds || []);
   const applied = candidates.filter((c) => requested.has(c.taskId));
 
-  const directCost = hours * 1000;
+  const target = MOCK_PROJECT_BOARD.tasks.find((t) => t.id === payload.targetTaskId);
+  const directCost = hours * (Number(target?.hourlyRate) || 0);
   const changeAndReworkCost = directCost + rework.reduce((s, r) => s + r.extraCost, 0);
   const savedCost = applied.reduce((s, c) => s + c.savedCost, 0);
   const savedDays = applied.reduce((s, c) => s + c.savedDays, 0);
@@ -36,7 +37,7 @@ function buildMockSimulation(payload) {
   return {
     targetTaskId: payload.targetTaskId,
     impactedTasks: [
-      { taskId: payload.targetTaskId, title: `Task #${payload.targetTaskId}`, impactType: 'DIRECT_CHANGE', extraHours: hours, extraCost: directCost, delayDays: days },
+      { taskId: payload.targetTaskId, title: target?.title || `Task #${payload.targetTaskId}`, impactType: 'DIRECT_CHANGE', extraHours: hours, extraCost: directCost, delayDays: days },
       ...rework,
     ],
     candidateTradeOffs: candidates,
